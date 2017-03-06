@@ -7,7 +7,8 @@ Installation
 ------------
 
 First you'll need to install the dependencies of this project, preferably via npm.
-$npm install castv2, mdns, debug
+
+    $ npm install castv2, mdns, debug
 
 Afterwards simply clone the repo to your prefered destination
 
