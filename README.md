@@ -30,17 +30,18 @@ Now you can simply call the script and the web-api should be up and running!
 
 Usage
 -----
-None of the parameters needs to be put in '' or anything like that. Just paste it in.
-
-### HTTP response codes
-- 200: Successfull communication with your Google Cast device requested JSON data is returned
-- 400: Parameters missing or in the wrong format, returns 'Parameter error'
-- 404: Requested URL doesn't match any function, returns 'Not found'
-- 500: Comunication with Cast device failed, enable debuging to check for possible errors
 
 ### Request URLs
 
+Request URLs are formated like this:
+
     http://{hostname}:{port}/{request}?{parameter}={parameter_value}
+
+Example URL for setting the volume to 50%:
+
+    http://127.0.0.1:3000/setDeviceVolume?address=192.168.86.86&volume=0.5
+
+None of the parameters has to be put in '' or anything like that. Just paste it in.
 
 #### getDevices
 Returns a JSON Array of devices found on the network
@@ -108,3 +109,10 @@ and plays currently loaded media.
 and stops casting to the device, kills currently running session. 
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
+
+### HTTP response codes
+The server will return an HTTP status code so you can quickly determin if the request was successfull or not
+- 200: Successfull communication with your Google Cast device requested JSON data is returned
+- 400: Parameters missing or in the wrong format, returns 'Parameter error'
+- 404: Requested URL doesn't match any function, returns 'Not found'
+- 500: Comunication with Cast device failed, enable debuging to check for possible errors
