@@ -59,45 +59,45 @@ Returns a JSON Array of devices found on the network
 ```
 
 #### getDeviceStatus (address)
-Returns DEVICE_STATUS,
+**Returns DEVICE_STATUS,**
 which is JSON encoded and part of the Google Cast protocol.
 - address: IP adress of the Google Cast device
 
 #### setDeviceVolume (address) (volume) 
-*Returns* DEVICE_STATUS
+**Returns DEVICE_STATUS,**
 and sets the device volume. The return value reflects the state of the device after the command was executed.
 - address: IP adress of the Google Cast device
 - volume: Float value from 0-1 (0.1=10%, 0.2=20%, ...)
 
 #### setDeviceMuted (address) (muted)
-*Returns* DEVICE_STATUS
+**Returns DEVICE_STATUS,**
 and mutes or unmutes the device.
 - address: IP adress of the Google Cast device
 - muted: true / false
 
 #### getMediaStatus (address) (sessionId)
-*Returns* MEDIA_STATUS,
+**Returns MEDIA_STATUS,**
 which is JSON encoded and part of the cast protocol as well. 
 Can **only** be executed if something is loaded or playing on the device (sessionId must be set). Check for sessionId by using getDeviceStatus.
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 
 #### setMediaPlaybackPause (address) (sessionId) (mediaSessionId)
-*Returns* MEDIA_STATUS,
+**Returns MEDIA_STATUS,**
 and pauses currently playing media. mediaSessionId is included in getMediaStatus.
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 - mediaSessionId: int
 
 #### setMediaPlaybackPlay (address) (sessionId) (mediaSessionId)
-*Returns* MEDIA_STATUS,
+**Returns MEDIA_STATUS,**
 and plays currently loaded media.
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 - mediaSessionId: int
 
 #### setDevicePlaybackStop (address) (sessionId)
-*Returns* DEVICE_STATUS, **not** MEDIA_STATUS,
+**Returns DEVICE_STATUS, *not* MEDIA_STATUS,**
 and stops casting to the device, kills currently running session. 
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
