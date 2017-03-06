@@ -18,7 +18,7 @@ By default the server runs on 127.0.0.1 port 3000. They can be adjusted by chang
 
 Now you can simply call the script and the web-api should be up and running!
 
-```$node (yourdirectory)/castWebApi.js```
+    $ node (yourdirectory)/castWebApi.js
 
 
 Usage
