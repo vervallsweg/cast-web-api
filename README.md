@@ -5,8 +5,7 @@ This simple web API is based on the awesome [node-castv2](https://github.com/thi
 
 However my code is **verry badly written and experimental code, not intendend for any production environment!**
 
-Installation
-------------
+## Installation
 
 First you'll need to install the dependencies of this project, preferably via npm.
 
@@ -29,8 +28,7 @@ Now you can simply call the script and the web-api should be up and running!
     $ node (yourdirectory)/castWebApi.js
 
 
-Usage
------
+## Usage
 
 ### Request URLs
 
@@ -144,3 +142,6 @@ If you require further information you can enable debugging for the underlying c
 ## Furher information
 [thibauts](https://github.com/thibauts "thibauts profile") wrote a great [protocol description](https://github.com/thibauts/node-castv2#protocol-description "protocol description"). I can only highly recommend reading it.
 
+If you read the first sentences of this file it goes without saying that you **should not** run this API on the internet. Run it behind a firewall only in your local network!
+
+If you find a bug or typo, feel free to contact me, open an issue, fork it, fix it yourself and open a pull request, you name it.
