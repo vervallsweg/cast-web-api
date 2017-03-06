@@ -2,6 +2,7 @@ const http = require('http');
 const Client = require('castv2').Client;
 const mdns = require('mdns');
 const url = require('url');
+const debug = require('debug');
 var timeOutDelay = 2000;
 
 createWebServer();
@@ -128,11 +129,11 @@ function createWebServer() {
 	});
 
 	server.listen(port, hostname, () => {
-	 	console.log(`Server running at http://${hostname}:${port}/`);
+	 	console.log('Server running at http://${hostname}:${port}/');
 	});
 
 	server.on('request', (req, res) => {
-		console.log('Request to: '+ req.url);
+		console.info('Request to: '+ req.url);
 	});
 }
 
