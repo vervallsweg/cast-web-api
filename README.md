@@ -1,7 +1,8 @@
 # cast-web-api
 Quick and dirty Node.js web API for Google Cast enabled devices.
 
-First of this is **verry badly written and experimental code, not intendend for any production environment!**
+This simple web API is based on the awesome [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
+However my code is **verry badly written and experimental code, not intendend for any production environment!**
 
 Installation
 ------------
@@ -45,7 +46,7 @@ Returns a JSON Array of devices found on the network
 	[
 		"device name",
 		"IP",
-		"port"
+		port
 	],
 	[
 		...
