@@ -180,7 +180,7 @@ function createWebServer() {
 
 		else {
 			res.statusCode = 404;
-			res.end("Not found");
+			res.end('Not found');
 		}
 	});
 
