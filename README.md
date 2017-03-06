@@ -15,7 +15,7 @@ Afterwards simply clone the repo to your prefered destination
     $ git clone https://github.com/vervallsweg/cast-web-api.git
 
 
-By default the server runs on 127.0.0.1 port 3000. They can be adjusted by changing const hostname and port in line 1-2.
+By default the server runs localhost:3000. They can be adjusted by changing const hostname and port in line 1-2.
 
 ```
 const hostname = '127.0.0.1';
@@ -37,3 +37,19 @@ Usage
 - 500: Comunication with Cast device failed, enable debuging to check for possible errors
 
 ### Request URLs
+
+#### /getDevices
+Returns a JSON Array of devices found on the network
+``` 
+[
+	[
+		"device name",
+		"IP",
+		"port"
+	],
+	[
+		...
+	]
+
+]
+```
