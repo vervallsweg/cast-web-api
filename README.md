@@ -11,7 +11,7 @@ $npm install castv2, mdns, debug
 
 Afterwards simply clone the repo to your prefered destination
 
-$ git clone https://github.com/vervallsweg/cast-web-api.git
+    $ git clone https://github.com/vervallsweg/cast-web-api.git
 
 
 By default the server runs on 127.0.0.1 port 3000. They can be adjusted by changing const hostname and port in line 1-2.
