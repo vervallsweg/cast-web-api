@@ -1,3 +1,5 @@
+const hostname = '127.0.0.1';
+const port = 3000;
 const http = require('http');
 const Client = require('castv2').Client;
 const mdns = require('mdns');
@@ -9,9 +11,6 @@ createWebServer();
 
 //WEBSERVER
 function createWebServer() {
-	const hostname = '127.0.0.1';
-	const port = 3000;
-
 	const server = http.createServer((req, res) => {
 		var parsedUrl = url.parse(req.url, true);
 
