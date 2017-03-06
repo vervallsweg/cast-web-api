@@ -30,10 +30,10 @@ Now you can simply call the script and the web-api should be up and running!
 Usage
 -----
 
-# HTTP response codes
+### HTTP response codes
 - 200: Successfull communication with your Google Cast device requested JSON data is returned
 - 400: Parameters missing or in the wrong format, returns 'Parameter error'
 - 404: Requested URL doesn't match any function, returns 'Not found'
 - 500: Comunication with Cast device failed, enable debuging to check for possible errors
 
-# Request URLs
+### Request URLs
