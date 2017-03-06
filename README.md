@@ -2,6 +2,7 @@
 Quick and dirty Node.js web API for Google Cast enabled devices.
 
 This simple web API is based on the awesome [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
+
 However my code is **verry badly written and experimental code, not intendend for any production environment!**
 
 Installation
@@ -9,7 +10,7 @@ Installation
 
 First you'll need to install the dependencies of this project, preferably via npm.
 
-    $ npm install castv2, mdns, debug
+    $ npm install castv2, mdns, debug, http, url
 
 Afterwards simply clone the repo to your prefered destination
 
@@ -110,9 +111,36 @@ and stops casting to the device, kills currently running session.
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 
+#### setConfig
+See [server settings](https://github.com/vervallsweg/cast-web-api/#Server_settings "server settings")
+
 ### HTTP response codes
-The server will return an HTTP status code so you can quickly determin if the request was successfull or not
-- 200: Successfull communication with your Google Cast device requested JSON data is returned
+The server will return an HTTP status code so you can quickly determin if the request was successful or not
+- 200: Successful communication with your Google Cast device requested JSON data is returned
 - 400: Parameters missing or in the wrong format, returns 'Parameter error'
 - 404: Requested URL doesn't match any function, returns 'Not found'
 - 500: Comunication with Cast device failed, enable debuging to check for possible errors
+
+## Server settings
+Hostname and port are hardcoded and must be change in code, see [Installation](https://github.com/vervallsweg/cast-web-api/#installation "Installation").
+
+Further, basic settings can be set using the setConfig request url. For now just the timeOut value can be changed.
+
+### Parameters
+#### timeOut (ms)
+**Returns OK: timeOut set to: ms**,
+
+this sets the time for the server to wait for an answer from the cast device. By default it is set to 2000ms (2s). This paramteter effects all requests that use the network. Even if an answer is received by the server, it will still wait the set amount of time. The last message that is received in that time frame will be returned.
+
+## Debugging
+cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
+
+    $ DEBUG=cast-web-api node (yourdirectory)/castWebApi.js
+
+If you require further information you can enable debugging for the underlying castv2 module. You can either set the scope to castv2 or to everything *:
+
+    $ DEBUG=* node (yourdirectory)/castWebApi.js
+
+## Furher information
+[thibauts](https://github.com/thibauts "thibauts profile") wrote a great [protocol description](https://github.com/thibauts/node-castv2#protocol-description "protocol description"). I can only highly recommend reading it.
+
