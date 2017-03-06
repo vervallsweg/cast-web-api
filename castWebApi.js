@@ -139,13 +139,13 @@ function createWebServer() {
 
 //GOOGLE CAST FUNCTIONS
 function getDevices() {
-	var devices;
+	var devices=[];
 	var browser = mdns.createBrowser(mdns.tcp('googlecast'));
 
 	browser.on('serviceUp', function(service) {
 		var currentDevice = [service.name, service.addresses[0], service.port];
   		console.log('found device ' + currentDevice.toString());
-  		//devices.push(currentDevice);
+  		devices.push(currentDevice);
 	});
 
 	browser.start();
