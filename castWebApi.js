@@ -2,7 +2,6 @@ const http = require('http');
 const Client = require('castv2').Client;
 const mdns = require('mdns');
 const url = require('url');
-const queryString = require('querystring');
 var timeOutDelay = 2000;
 
 createWebServer();
@@ -35,7 +34,7 @@ function createWebServer() {
 					res.end(deviceStatus);
 				});
 			} else {
-				res.end('Err no address');
+				res.end('Parameter error');
 			}
 		}
 
@@ -47,7 +46,7 @@ function createWebServer() {
 					res.end(deviceStatus);
 				});
 			} else {
-				res.end('Param err');
+				res.end('Parameter error');
 			}
 		}
 
@@ -59,7 +58,7 @@ function createWebServer() {
 					res.end(deviceStatus);
 				});
 			} else {
-				res.end('Param err');
+				res.end('Parameter error');
 			}
 		}
 
@@ -71,7 +70,7 @@ function createWebServer() {
 					res.end(mediaStatus);
 				});
 			} else {
-				res.end('Param err');
+				res.end('Parameter error');
 			}
 		}
 
@@ -83,7 +82,7 @@ function createWebServer() {
 					res.end(mediaStatus);
 				});
 			} else {
-				res.end('Param err');
+				res.end('Parameter error');
 			}
 		}
 
@@ -95,7 +94,7 @@ function createWebServer() {
 					res.end(mediaStatus);
 				});
 			} else {
-				res.end('Param err');
+				res.end('Parameter error');
 			}
 		}
 
@@ -107,7 +106,7 @@ function createWebServer() {
 					res.end(mediaStatus);
 				});
 			} else {
-				res.end('Param err');
+				res.end('Parameter error');
 			}
 		}
 
@@ -118,7 +117,7 @@ function createWebServer() {
 				timeOutDelay = parsedUrl['query']['timeOut'];
 				res.end('OK: timeOut set to: '+parsedUrl['query']['timeOut']);
 			} else {
-				res.end('Param err');
+				res.end('Parameter error');
 			}
 		}
 
@@ -249,13 +248,6 @@ function setDeviceMuted(address, muted) {
 	});
 }
 
-// JAVA ref code
-/*public MediaStatus play(String destinationId, String sessionId, long mediaSessionId) throws IOException {
-        this.startSession(destinationId);
-        su.litvak.chromecast.api.v2.StandardResponse.MediaStatus status = (su.litvak.chromecast.api.v2.StandardResponse.MediaStatus)this.sendStandard("urn:x-cast:com.google.cast.media", StandardRequest.play(sessionId, mediaSessionId), destinationId);
-        return status != null && status.statuses.length != 0?status.statuses[0]:null;
-    } */
-
 function getMediaStatus(address, sessionId) {
 	var mediaStatus, connection, receiver, media;
 	var client = new Client();
@@ -295,8 +287,7 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 
 	    connection.send({ type: 'CONNECT', origin: {} });
 	    media.send({ type: 'PAUSE', requestId: 1, mediaSessionId: mediaSId, sessionId: sId });
-	    //{"type":"PAUSE","requestId":3,"mediaSessionId":2,"sessionId":"142cb092-6d30-442e-b893-3ee058a41141"}
- 
+	    
 	    media.on('message', function(data, broadcast) {
 	    	console.log(data);
 		  	if(data.type == 'MEDIA_STATUS') {
@@ -325,8 +316,7 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 
 	    connection.send({ type: 'CONNECT', origin: {} });
 	    media.send({ type: 'PLAY', requestId: 1, mediaSessionId: mediaSId, sessionId: sId });
-	    //{"type":"PAUSE","requestId":3,"mediaSessionId":2,"sessionId":"142cb092-6d30-442e-b893-3ee058a41141"}
- 
+	    
 	    media.on('message', function(data, broadcast) {
 	    	console.log(data);
 		  	if(data.type == 'MEDIA_STATUS') {
