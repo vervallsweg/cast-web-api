@@ -39,7 +39,9 @@ Usage
 
 ### Request URLs
 
-#### /getDevices
+    http://{hostname}:{port}/{request}?{parameter}={parameter_value}
+
+#### getDevices
 Returns a JSON Array of devices found on the network
 ``` 
 [
@@ -54,3 +56,22 @@ Returns a JSON Array of devices found on the network
 
 ]
 ```
+
+#### getDeviceStatus (address)
+Returns the Google Cast DEVICE_STATUS, which is JSON encoded.
+- address: IP adress of the Google Cast device
+
+#### setDeviceVolume (address) (volume) 
+Sets the device volume and *returns* DEVICE_STATUS. This reflects the state of the device after the command was executed.
+- address: IP adress of the Google Cast device
+- volume: Float value from 0-1 (0.1=10%, 0.2=20%, ...)
+
+#### setDeviceMuted (address) (muted)
+Mutes or unmutes the device and returns the new DEVICE_STATUS
+- address: IP adress of the Google Cast device
+- muted: true / false
+
+#### getMediaStatus (address) (sessionId)
+Returns the standard MEDIA_STATUS, JSON encoded. Can only be executed if something is loaded or playing on the device (sessionId must be set). Check for sessionId by using getDeviceStatus.
+- address: IP adress of the Google Cast device
+- sessionId: sessionId of the current active session
