@@ -2,7 +2,7 @@ const http = require('http');
 const Client = require('castv2').Client;
 const mdns = require('mdns');
 const url = require('url');
-const debug = require('debug');
+const debug = require('debug')('cast-web-api');
 var timeOutDelay = 2000;
 
 createWebServer();
@@ -129,7 +129,7 @@ function createWebServer() {
 	});
 
 	server.listen(port, hostname, () => {
-	 	console.log('Server running at http://${hostname}:${port}/');
+	 	console.log(`Server running at http://${hostname}:${port}/`);
 	});
 
 	server.on('request', (req, res) => {
@@ -144,7 +144,7 @@ function getDevices() {
 
 	browser.on('serviceUp', function(service) {
 		var currentDevice = [service.name, service.addresses[0], service.port];
-  		console.log('found device ' + currentDevice.toString());
+  		debug('getDevices found: %s', currentDevice.toString());
   		devices.push(currentDevice);
 	});
 
@@ -167,6 +167,7 @@ function getDeviceStatus(address) {
 	var deviceStatus, connection, receiver;
 	var client = new Client();
 
+	debug('getDeviceStatus addr: %a', address);
  	client.connect(address, function() {
 	    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 	    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
@@ -177,7 +178,7 @@ function getDeviceStatus(address) {
 	    receiver.on('message', function(data, broadcast) {
 		  	if(data.type == 'RECEIVER_STATUS') {
 		  		deviceStatus = data.status;
-		  		console.log(deviceStatus);
+		  		debug('getDeviceStatus recv: %s', JSON.stringify(deviceStatus));
 		 	}
 	   	});
   	});
@@ -194,8 +195,8 @@ function getDeviceStatus(address) {
 function setDeviceVolume(address, volume) {
 	var deviceStatus, connection, receiver;
 	var client = new Client();
-	console.log(volume);
-
+	
+	debug('setDeviceVolume addr: %s', address, 'volu:', volume);
  	client.connect(address, function() {
 	    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 	    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
@@ -206,7 +207,7 @@ function setDeviceVolume(address, volume) {
 	    receiver.on('message', function(data, broadcast) {
 		  	if(data.type == 'RECEIVER_STATUS') {
 		  		deviceStatus = data.status;
-		  		console.log(deviceStatus);
+		  		debug('setDeviceVolume recv: %s', JSON.stringify(deviceStatus));
 		 	}
 	   	});
   	});
@@ -223,8 +224,8 @@ function setDeviceVolume(address, volume) {
 function setDeviceMuted(address, muted) {
 	var deviceStatus, connection, receiver;
 	var client = new Client();
-	console.log(muted);
 
+	debug('setDeviceMuted addr: %s', address, 'muted:', muted);
  	client.connect(address, function() {
 	    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 	    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
@@ -235,7 +236,7 @@ function setDeviceMuted(address, muted) {
 	    receiver.on('message', function(data, broadcast) {
 		  	if(data.type == 'RECEIVER_STATUS') {
 		  		deviceStatus = data.status;
-		  		console.log(deviceStatus);
+		  		debug('setDeviceMuted recv: %s', JSON.stringify(deviceStatus));
 		 	}
 	   	});
   	});
@@ -253,6 +254,7 @@ function getMediaStatus(address, sessionId) {
 	var mediaStatus, connection, receiver, media;
 	var client = new Client();
 
+	debug('getMediaStatus addr: %s', address, 'seId:', sessionId);
  	client.connect(address, function() {
 	    connection = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 	    media = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
@@ -261,10 +263,9 @@ function getMediaStatus(address, sessionId) {
 	    media.send({ type: 'GET_STATUS', requestId: 1 });
  
 	    media.on('message', function(data, broadcast) {
-	    	console.log(data);
 		  	if(data.type == 'MEDIA_STATUS') {
 		  		mediaStatus = data.status;
-		  		console.log(mediaStatus);
+		  		debug('getMediaStatus recv: %s', JSON.stringify(mediaStatus));
 		 	}
 	   	});
   	});
@@ -282,6 +283,7 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 	var mediaStatus, connection, receiver, media;
 	var client = new Client();
 
+	debug('setMediaPlaybackPause addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
  	client.connect(address, function() {
 	    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 	    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
@@ -290,10 +292,9 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 	    media.send({ type: 'PAUSE', requestId: 1, mediaSessionId: mediaSId, sessionId: sId });
 	    
 	    media.on('message', function(data, broadcast) {
-	    	console.log(data);
 		  	if(data.type == 'MEDIA_STATUS') {
 		  		mediaStatus = data.status;
-		  		console.log(mediaStatus);
+		  		debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
 		 	}
 	   	});
   	});
@@ -311,6 +312,7 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 	var mediaStatus, connection, receiver, media;
 	var client = new Client();
 
+	debug('setMediaPlaybackPlay addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
  	client.connect(address, function() {
 	    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 	    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
@@ -319,10 +321,9 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 	    media.send({ type: 'PLAY', requestId: 1, mediaSessionId: mediaSId, sessionId: sId });
 	    
 	    media.on('message', function(data, broadcast) {
-	    	console.log(data);
 		  	if(data.type == 'MEDIA_STATUS') {
 		  		mediaStatus = data.status;
-		  		console.log(mediaStatus);
+		  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
 		 	}
 	   	});
   	});
@@ -340,6 +341,7 @@ function setDevicePlaybackStop(address, sId) {
 	var deviceStatus, connection, receiver;
 	var client = new Client();
 
+	debug('setDevicePlaybackStop addr: %s', address, 'seId:', sId);
  	client.connect(address, function() {
 	    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 	    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
@@ -348,10 +350,9 @@ function setDevicePlaybackStop(address, sId) {
 	    receiver.send({ type: 'STOP', sessionId: sId, requestId: 1 });
 
 	    receiver.on('message', function(data, broadcast) {
-	    	console.log(data);
 		  	if(data.type == 'RECEIVER_STATUS') {
 		  		deviceStatus = data.status;
-		  		console.log(deviceStatus);
+		  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
 		 	}
 	   	});
   	});
