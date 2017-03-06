@@ -30,6 +30,7 @@ Now you can simply call the script and the web-api should be up and running!
 
 Usage
 -----
+None of the parameters needs to be put in '' or anything like that. Just paste it in.
 
 ### HTTP response codes
 - 200: Successfull communication with your Google Cast device requested JSON data is returned
@@ -73,5 +74,22 @@ Mutes or unmutes the device and returns the new DEVICE_STATUS
 
 #### getMediaStatus (address) (sessionId)
 Returns the standard MEDIA_STATUS, JSON encoded. Can only be executed if something is loaded or playing on the device (sessionId must be set). Check for sessionId by using getDeviceStatus.
+- address: IP adress of the Google Cast device
+- sessionId: sessionId of the current active session
+
+#### setMediaPlaybackPause (address) (sessionId) (mediaSessionId)
+Pauses currently playing media. Returns MEDIA_STATUS. mediaSessionId is included in getMediaStatus.
+- address: IP adress of the Google Cast device
+- sessionId: sessionId of the current active session
+- mediaSessionId: int
+
+#### setMediaPlaybackPlay (address) (sessionId) (mediaSessionId)
+Plays currently loaded media. Returns MEDIA_STATUS.
+- address: IP adress of the Google Cast device
+- sessionId: sessionId of the current active session
+- mediaSessionId: int
+
+#### setDevicePlaybackStop (address) (sessionId)
+Stops casting to the device, kills currently running session. Returns DEVICE_STATUS, *not* MEDIA_STATUS.
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
