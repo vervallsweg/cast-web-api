@@ -5,6 +5,7 @@ const Client = require('castv2').Client;
 const mdns = require('mdns');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
+var currenRequestId = 1;
 var timeOutDelay = 2000;
 
 createWebServer();
