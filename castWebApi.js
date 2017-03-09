@@ -171,6 +171,9 @@ function createWebServer() {
 			if (parsedUrl['query']['timeOut']) {
 				timeOutDelay = parsedUrl['query']['timeOut'];
 				res.end('OK: timeOut set to: '+parsedUrl['query']['timeOut']);
+			} else if (parsedUrl['query']['currenRequestId']) {
+				currenRequestId = parsedUrl['query']['currenRequestId']
+				res.end('OK: currenRequestId set to: '+parsedUrl['query']['currenRequestId']);
 			} else {
 				res.statusCode = 400;
 				res.end('Parameter error');
@@ -236,7 +239,7 @@ function getDeviceStatus(address) {
 		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
 		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'GET_STATUS', requestId: 1 });
+			receiver.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
 		    
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
@@ -279,7 +282,7 @@ function setDeviceVolume(address, volume) {
 		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
 		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'SET_VOLUME', volume: { level: volume }, requestId: 1 });
+			receiver.send({ type: 'SET_VOLUME', volume: { level: volume }, requestId: getNewRequestId() });
 		    
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
@@ -322,7 +325,7 @@ function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
 		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
 		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'SET_VOLUME', volume: { muted: muted }, requestId: 1 });
+			receiver.send({ type: 'SET_VOLUME', volume: { muted: muted }, requestId: getNewRequestId() });
 		    
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
@@ -365,7 +368,7 @@ function getMediaStatus(address, sessionId) {
 		    media = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
 		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'GET_STATUS', requestId: 1 });
+		    media.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
 	 
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
@@ -408,7 +411,7 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 		    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
 		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'PAUSE', requestId: 1, mediaSessionId: mediaSId, sessionId: sId });
+		    media.send({ type: 'PAUSE', requestId: getNewRequestId(), mediaSessionId: mediaSId, sessionId: sId });
 		    
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
@@ -451,7 +454,7 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 		    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
 		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'PLAY', requestId: 1, mediaSessionId: mediaSId, sessionId: sId });
+		    media.send({ type: 'PLAY', requestId: getNewRequestId(), mediaSessionId: mediaSId, sessionId: sId });
 		    
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
@@ -494,7 +497,7 @@ function setDevicePlaybackStop(address, sId) {
 		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
 		    connection.send({ type: 'CONNECT' });
-		    receiver.send({ type: 'STOP', sessionId: sId, requestId: 1 });
+		    receiver.send({ type: 'STOP', sessionId: sId, requestId: getNewRequestId() });
 
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
@@ -524,4 +527,13 @@ function setDevicePlaybackStop(address, sId) {
 	    	resolve(null);
 	  	}, timeOutDelay);
 	});
+}
+
+function getNewRequestId(){
+	if(currenRequestId > 9998){
+		currenRequestId=1;
+		debug("Rest currenRequestId");
+	}
+	debug("getNewRequestId: "+(currenRequestId+1))
+	return currenRequestId++;
 }
