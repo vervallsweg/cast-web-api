@@ -240,7 +240,7 @@ function getDeviceStatus(address) {
 		    
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
-			  		deviceStatus = data.status;
+			  		deviceStatus = data;
 			  		debug('getDeviceStatus recv: %s', JSON.stringify(deviceStatus));
 			 	}
 		   	});
@@ -283,7 +283,7 @@ function setDeviceVolume(address, volume) {
 		    
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
-			  		deviceStatus = data.status;
+			  		deviceStatus = data;
 			  		debug('setDeviceVolume recv: %s', JSON.stringify(deviceStatus));
 			 	}
 		   	});
@@ -326,7 +326,7 @@ function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
 		    
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
-			  		deviceStatus = data.status;
+			  		deviceStatus = data;
 			  		debug('setDeviceMuted recv: %s', JSON.stringify(deviceStatus));
 			 	}
 		   	});
@@ -369,7 +369,7 @@ function getMediaStatus(address, sessionId) {
 	 
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
-			  		mediaStatus = data.status;
+			  		mediaStatus = data;
 			  		debug('getMediaStatus recv: %s', JSON.stringify(mediaStatus));
 			 	}
 		   	});
@@ -412,7 +412,7 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 		    
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
-			  		mediaStatus = data.status;
+			  		mediaStatus = data;
 			  		debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
 			 	}
 		   	});
@@ -455,7 +455,7 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 		    
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
-			  		mediaStatus = data.status;
+			  		mediaStatus = data;
 			  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
 			 	}
 		   	});
@@ -498,7 +498,7 @@ function setDevicePlaybackStop(address, sId) {
 
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
-			  		deviceStatus = data.status;
+			  		deviceStatus = data;
 			  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
 			 	}
 		   	});
