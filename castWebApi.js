@@ -529,6 +529,14 @@ function setDevicePlaybackStop(address, sId) {
 	});
 }
 
+function setMediaSkipForward(deviceAddress, sessionId, mediaSessionId){
+	//TODO:
+}
+
+function setMediaSkipBackward(deviceAddress, sessionId, mediaSessionId){
+	//TODO:
+}
+
 function getNewRequestId(){
 	if(currenRequestId > 9998){
 		currenRequestId=1;
