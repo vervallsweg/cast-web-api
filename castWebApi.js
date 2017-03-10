@@ -15,17 +15,17 @@ createWebServer();
 //HANDLE ARGUMENTS
 function interpretArguments() {
 	debug('Args: %s', JSON.stringify(args));
-	if (args.h) {
-		hostname = args.h;
+	if (args.hostname) {
+		hostname = args.hostname;
 	}
-	if (args.p) {
-		port = args.p;
+	if (args.port) {
+		port = args.port;
 	}
-	if (args.t) {
-		timeOutDelay = args.t;
+	if (args.timeOutDelay) {
+		timeOutDelay = args.timeOutDelay;
 	}
-	if (args.c) {
-		currenRequestId = args.c;
+	if (args.currenRequestId) {
+		currenRequestId = args.currenRequestId;
 	}
 }
 
