@@ -249,323 +249,304 @@ function getDevices() {
 }
 
 function getDeviceStatus(address) {
-	var deviceStatus, connection, receiver, exception;
-	var client = new Client();
-	var corrRequestId = getNewRequestId();
-
-	try {
-		debug('getDeviceStatus addr: %a', address);
-	 	client.connect(address, function() {
-		    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
-
-		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'GET_STATUS', requestId: corrRequestId });
-		    
-		    receiver.on('message', function(data, broadcast) {
-			  	if(data.type == 'RECEIVER_STATUS') {
-			  		if (data.requestId==corrRequestId) {
-			  			deviceStatus = data;
-			  			debug('getDeviceStatus recv: %s', JSON.stringify(deviceStatus));
-			  		}
-			 	}
-		   	});
-	  	});
-	  	client.on('error', function(err) {
-		 	console.error('Error thrown', err);
-		 	exception = err;
-		});
-	} catch (e) {
-	 	console.error('Exception caught: ' + e);
-		exception = e;
-	} 
-	
-
   	return new Promise(resolve => {
+		var deviceStatus, connection, receiver, exception;
+		var client = new Client();
+		var corrRequestId = getNewRequestId();
+
+		try {
+			debug('getDeviceStatus addr: %a', address);
+		 	client.connect(address, function() {
+			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
+
+			    connection.send({ type: 'CONNECT' });
+				receiver.send({ type: 'GET_STATUS', requestId: corrRequestId });
+			    
+			    receiver.on('message', function(data, broadcast) {
+				  	if(data.type == 'RECEIVER_STATUS') {
+				  		if (data.requestId==corrRequestId) {
+				  			deviceStatus = data;
+				  			debug('getDeviceStatus recv: %s', JSON.stringify(deviceStatus));
+				  			resolve(JSON.stringify(deviceStatus));
+				  		}
+				 	}
+			   	});
+		  	});
+		  	client.on('error', function(err) {
+			 	handleException(err);
+			 	closeClientConnection(client, connection);
+			 	resolve(null);
+			});
+		} catch (e) {
+			handleException(e);
+			closeClientConnection(client, connection);
+			resolve(null);
+		}
+
 		setTimeout(() => {
-			try {connection.send({ type: 'CLOSE' }); client.close();}
-			catch (e) {console.error('Exception caught: '+e); exception=e;}
-			
-			if (!exception) {
-				resolve(JSON.stringify(deviceStatus));
-			}
-	    	resolve(null);
+			closeClientConnection(client, connection);
+			resolve(null);
 	  	}, timeOutDelay);
 	});
 }
 
 function setDeviceVolume(address, volume) {
-	var deviceStatus, connection, receiver, exception;
-	var client = new Client();
-	var corrRequestId = getNewRequestId();
-	
-	debug('setDeviceVolume addr: %s', address, 'volu:', volume);
- 	try {
- 		client.connect(address, function() {
-		    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
+	return new Promise(resolve => {
+		var deviceStatus, connection, receiver, exception;
+		var client = new Client();
+		var corrRequestId = getNewRequestId();
+		
+		debug('setDeviceVolume addr: %s', address, 'volu:', volume);
+	 	try {
+	 		client.connect(address, function() {
+			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
-		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'SET_VOLUME', volume: { level: volume }, requestId: corrRequestId });
-		    
-		    receiver.on('message', function(data, broadcast) {
-		    	if (data.requestId==corrRequestId) {
-				  	if(data.type == 'RECEIVER_STATUS') {
-				  		deviceStatus = data;
-				  		debug('setDeviceVolume recv: %s', JSON.stringify(deviceStatus));
-				 	}
-				}
-		   	});
-	  	});
+			    connection.send({ type: 'CONNECT' });
+				receiver.send({ type: 'SET_VOLUME', volume: { level: volume }, requestId: corrRequestId });
+			    
+			    receiver.on('message', function(data, broadcast) {
+			    	if (data.requestId==corrRequestId) {
+					  	if(data.type == 'RECEIVER_STATUS') {
+					  		deviceStatus = data;
+					  		debug('setDeviceVolume recv: %s', JSON.stringify(deviceStatus));
+					  		resolve(JSON.stringify(deviceStatus));
+					 	}
+					}
+			   	});
+		  	});
 
-	  	client.on('error', function(err) {
-			console.error('Error thrown', err);
-		 	exception = err;
-		});
-	} catch (e) {
-	 	console.error('Exception caught: ' + e);
-		exception = e;
-	}
+		  	client.on('error', function(err) {
+				handleException(err);
+				closeClientConnection(client, connection);
+			 	resolve(null);
+			});
+		} catch (e) {
+		 	handleException(err);
+			closeClientConnection(client, connection);
+			resolve(null);
+		}
 
-  	return new Promise(resolve => {
 		setTimeout(() => {
-			try {connection.send({ type: 'CLOSE' }); client.close();}
-			catch (e) {console.error('Exception caught: '+e); exception=e;}
-
-			if (!exception) {
-				resolve(JSON.stringify(deviceStatus));
-			}
-	    	resolve(null);
+			closeClientConnection(client, connection);
+			resolve(null);
 	  	}, timeOutDelay);
 	});
 }
 
 function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
-	var deviceStatus, connection, receiver, exception;
-	var client = new Client();
-	var corrRequestId = getNewRequestId();
+	return new Promise(resolve => {
+		var deviceStatus, connection, receiver, exception;
+		var client = new Client();
+		var corrRequestId = getNewRequestId();
 
-	debug('setDeviceMuted addr: %s', address, 'muted:', muted);
- 	try {
- 		client.connect(address, function() {
-		    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
+		debug('setDeviceMuted addr: %s', address, 'muted:', muted);
+	 	try {
+	 		client.connect(address, function() {
+			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
-		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'SET_VOLUME', volume: { muted: muted }, requestId: corrRequestId });
-		    
-		    receiver.on('message', function(data, broadcast) {
-			  	if(data.type == 'RECEIVER_STATUS') {
-			  		if (data.requestId==corrRequestId) {
-				  		deviceStatus = data;
-				  		debug('setDeviceMuted recv: %s', JSON.stringify(deviceStatus));
-				  	}
-			 	}
-		   	});
-	  	});
+			    connection.send({ type: 'CONNECT' });
+				receiver.send({ type: 'SET_VOLUME', volume: { muted: muted }, requestId: corrRequestId });
+			    
+			    receiver.on('message', function(data, broadcast) {
+				  	if(data.type == 'RECEIVER_STATUS') {
+				  		if (data.requestId==corrRequestId) {
+					  		deviceStatus = data;
+					  		debug('setDeviceMuted recv: %s', JSON.stringify(deviceStatus));
+					  		resolve(JSON.stringify(deviceStatus));
+					  	}
+				 	}
+			   	});
+		  	});
+		  	client.on('error', function(err) {
+			 	handleException(err);
+				closeClientConnection(client, connection);
+				resolve(null);
+			});
+	 	} catch (e) {
+		 	handleException(err);
+			closeClientConnection(client, connection);
+			resolve(null);
+		}
 
-	  	client.on('error', function(err) {
-		 	console.error('Error thrown', err);
-		 	exception = err;
-		});
- 	} catch (e) {
-	 	console.error('Exception caught: ' + e);
-		exception = e;
-	}
-
-  	return new Promise(resolve => {
-		setTimeout(() => {
-			try{connection.send({ type: 'CLOSE' }); client.close();}
-			catch (e) {console.error('Exception caught: '+e); exception=e;}
-			
-			if (!exception) {
-				resolve(JSON.stringify(deviceStatus));
-			}
-	    	resolve(null);
-	  	}, timeOutDelay);
+	  	setTimeout(() => {
+			closeClientConnection(client, connection);
+			resolve(null);
+	  	}, timeOutDelay);	
 	});
 }
 
 function getMediaStatus(address, sessionId) {
-	var mediaStatus, connection, receiver, media, exception;
-	var client = new Client();
-	var corrRequestId = getNewRequestId();
+	return new Promise(resolve => {
+		var mediaStatus, connection, receiver, media, exception;
+		var client = new Client();
+		var corrRequestId = getNewRequestId();
 
-	debug('getMediaStatus addr: %s', address, 'seId:', sessionId);
-	try {
-		client.connect(address, function() {
-		    connection = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    media = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
+		debug('getMediaStatus addr: %s', address, 'seId:', sessionId);
+		try {
+			client.connect(address, function() {
+			    connection = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+			    media = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
-		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'GET_STATUS', requestId: corrRequestId });
-	 
-		    media.on('message', function(data, broadcast) {
-			  	if(data.type == 'MEDIA_STATUS') {
-			  		if (data.requestId==corrRequestId) {
-				  		mediaStatus = data;
-				  		debug('getMediaStatus recv: %s', JSON.stringify(mediaStatus));
-				  	}
-			 	}
-		   	});
-	  	});
+			    connection.send({ type: 'CONNECT', origin: {} });
+			    media.send({ type: 'GET_STATUS', requestId: corrRequestId });
+		 
+			    media.on('message', function(data, broadcast) {
+				  	if(data.type == 'MEDIA_STATUS') {
+				  		if (data.requestId==corrRequestId) {
+					  		mediaStatus = data;
+					  		debug('getMediaStatus recv: %s', JSON.stringify(mediaStatus));
+					  		resolve(JSON.stringify(mediaStatus));
+					  	}
+				 	}
+			   	});
+		  	});
 
-	 	client.on('error', function(err) {
-		 	console.error('Error thrown', err);
-		 	exception = err;
-		});
-	} catch (e) {
-	 	console.error('Exception caught: ' + e);
-		exception = e;
-	}
+		 	client.on('error', function(err) {
+			 	handleException(err);
+				closeClientConnection(client, connection);
+				resolve(null);
+			});
+		} catch (e) {
+		 	handleException(err);
+			closeClientConnection(client, connection);
+			resolve(null);
+		}
 
-  	return new Promise(resolve => {
 		setTimeout(() => {
-			try{connection.send({ type: 'CLOSE' }); client.close();}
-			catch (e) {console.error('Exception caught: '+e); exception=e;}
-			
-			if (!exception) {
-				resolve(JSON.stringify(mediaStatus));
-			}
-	    	resolve(null);
+			closeClientConnection(client, connection);
+			resolve(null);
 	  	}, timeOutDelay);
 	});
 }
 
 function setMediaPlaybackPause(address, sId, mediaSId) {
-	var mediaStatus, connection, receiver, media, exception;
-	var client = new Client();
-	var corrRequestId = getNewRequestId();
+	return new Promise(resolve => {
+		var mediaStatus, connection, receiver, media, exception;
+		var client = new Client();
+		var corrRequestId = getNewRequestId();
 
-	debug('setMediaPlaybackPause addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
- 	try {
- 		client.connect(address, function() {
-		    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
+		debug('setMediaPlaybackPause addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
+	 	try {
+	 		client.connect(address, function() {
+			    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+			    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
-		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'PAUSE', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
-		    
-		    media.on('message', function(data, broadcast) {
-			  	if(data.type == 'MEDIA_STATUS') {
-			  		if (data.requestId==corrRequestId) {
-				  		mediaStatus = data;
-				  		debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
-				  	}
-			 	}
-		   	});
-	  	});
+			    connection.send({ type: 'CONNECT', origin: {} });
+			    media.send({ type: 'PAUSE', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
+			    
+			    media.on('message', function(data, broadcast) {
+				  	if(data.type == 'MEDIA_STATUS') {
+				  		if (data.requestId==corrRequestId) {
+					  		mediaStatus = data;
+					  		debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
+					  		resolve(JSON.stringify(mediaStatus));
+					  	}
+				 	}
+			   	});
+		  	});
 
-	  	client.on('error', function(err) {
-		 	console.error('Error thrown', err);
-		 	exception = err;
-		});
-	  } catch (e) {
-	 	console.error('Exception caught: ' + e);
-		exception = e;
-	}
-
-  	return new Promise(resolve => {
+		  	client.on('error', function(err) {
+			 	handleException(err);
+				closeClientConnection(client, connection);
+				resolve(null);
+			});
+		  } catch (e) {
+		 	handleException(err);
+			closeClientConnection(client, connection);
+			resolve(null);
+		}
 		setTimeout(() => {
-			try {connection.send({ type: 'CLOSE' }); client.close();}
-			catch (e) {console.error('Exception caught: '+e); exception=e;}
-
-			if (!exception) {
-				resolve(JSON.stringify(mediaStatus));
-			}
-	    	resolve(null);
+			closeClientConnection(client, connection);
+			resolve(null);
 	  	}, timeOutDelay);
 	});
 }
 
 function setMediaPlaybackPlay(address, sId, mediaSId) {
-	var mediaStatus, connection, receiver, media, exception;
-	var client = new Client();
-	var corrRequestId = getNewRequestId();
+	return new Promise(resolve => {
+		var mediaStatus, connection, receiver, media, exception;
+		var client = new Client();
+		var corrRequestId = getNewRequestId();
 
-	debug('setMediaPlaybackPlay addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
- 	try {
- 		client.connect(address, function() {
-		    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
+		debug('setMediaPlaybackPlay addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
+	 	try {
+	 		client.connect(address, function() {
+			    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+			    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
-		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'PLAY', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
-		    
-		    media.on('message', function(data, broadcast) {
-			  	if(data.type == 'MEDIA_STATUS') {
-			  		if (data.requestId==corrRequestId) {
-				  		mediaStatus = data;
-				  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
-				  	}
-			 	}
-		   	});
-	  	});
+			    connection.send({ type: 'CONNECT', origin: {} });
+			    media.send({ type: 'PLAY', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
+			    
+			    media.on('message', function(data, broadcast) {
+				  	if(data.type == 'MEDIA_STATUS') {
+				  		if (data.requestId==corrRequestId) {
+					  		mediaStatus = data;
+					  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
+					  		resolve(JSON.stringify(mediaStatus));
+					  	}
+				 	}
+			   	});
+		  	});
 
-	 	client.on('error', function(err) {
-		 	console.error('Error thrown', err);
-		 	exception = err;
-		});
-	 } catch (e) {
-	 	console.error('Exception caught: ' + e);
-		exception = e;
-	}
-
-  	return new Promise(resolve => {
+		 	client.on('error', function(err) {
+			 	handleException(err);
+				closeClientConnection(client, connection);
+				resolve(null);
+			});
+		 } catch (e) {
+		 	handleException(err);
+			closeClientConnection(client, connection);
+			resolve(null);
+		}
 		setTimeout(() => {
-			try{connection.send({ type: 'CLOSE' }); client.close();}
-			catch (e) {console.error('Exception caught: '+e); exception=e;}
-
-			if (!exception) {
-				resolve(JSON.stringify(mediaStatus));
-			}
-	    	resolve(null);
+			closeClientConnection(client, connection);
+			resolve(null);
 	  	}, timeOutDelay);
 	});
 }
 
 function setDevicePlaybackStop(address, sId) {
-	var deviceStatus, connection, receiver, exception;
-	var client = new Client();
-	var corrRequestId = getNewRequestId();
+	return new Promise(resolve => {
+		var deviceStatus, connection, receiver, exception;
+		var client = new Client();
+		var corrRequestId = getNewRequestId();
 
-	debug('setDevicePlaybackStop addr: %s', address, 'seId:', sId);
-	try {
-		client.connect(address, function() {
-		    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
+		debug('setDevicePlaybackStop addr: %s', address, 'seId:', sId);
+		try {
+			client.connect(address, function() {
+			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
-		    connection.send({ type: 'CONNECT' });
-		    receiver.send({ type: 'STOP', sessionId: sId, requestId: corrRequestId });
+			    connection.send({ type: 'CONNECT' });
+			    receiver.send({ type: 'STOP', sessionId: sId, requestId: corrRequestId });
 
-		    receiver.on('message', function(data, broadcast) {
-			  	if(data.type == 'RECEIVER_STATUS') {
-			  		if (data.requestId==corrRequestId) {
-				  		deviceStatus = data;
-				  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
-				  	}
-			 	}
-		   	});
-	  	});
+			    receiver.on('message', function(data, broadcast) {
+				  	if(data.type == 'RECEIVER_STATUS') {
+				  		if (data.requestId==corrRequestId) {
+					  		deviceStatus = data;
+					  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
+					  		resolve(JSON.stringify(deviceStatus));
+					  	}
+				 	}
+			   	});
+		  	});
 
-	  	client.on('error', function(err) {
-		 	console.error('Error thrown', err);
-		 	exception = err;
-		});
-	} catch (e) {
-	 	console.error('Exception caught: ' + e);
-		exception = e;
-	}
-
-  	return new Promise(resolve => {
+		  	client.on('error', function(err) {
+			 	handleException(err);
+				closeClientConnection(client, connection);
+				resolve(null);
+			});
+		} catch (e) {
+		 	handleException(err);
+			closeClientConnection(client, connection);
+			resolve(null);
+		}
 		setTimeout(() => {
-			try{connection.send({ type: 'CLOSE' }); client.close();}
-			catch (e) {console.error('Exception caught: '+e); exception=e;}
-
-			if (!exception) {
-				resolve(JSON.stringify(deviceStatus));
-			}
-	    	resolve(null);
+			closeClientConnection(client, connection);
+			resolve(null);
 	  	}, timeOutDelay);
 	});
 }
@@ -577,4 +558,17 @@ function getNewRequestId(){
 	}
 	debug("getNewRequestId: "+(currenRequestId+1))
 	return currenRequestId++;
+}
+
+function closeClientConnection(client, connection) {
+	try {
+		connection.send({ type: 'CLOSE' });
+		client.close();
+	} catch (e) {
+		handleException(e);
+	}
+}
+
+function handleException(e) {
+	console.error('Exception caught: ' + e);
 }
