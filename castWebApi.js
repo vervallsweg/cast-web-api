@@ -553,6 +553,49 @@ function setDevicePlaybackStop(address, sId) {
 
 function setMediaSkipForward(deviceAddress, sessionId, mediaSessionId){
 	//TODO:
+	var mediaStatus, connection, receiver, media, exception;
+	var client = new Client();
+	var corrRequestId = getNewRequestId();
+
+	debug('setMediaPlaybackPlay addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
+ 	try {
+ 		client.connect(address, function() {
+		    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+		    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
+
+		    connection.send({ type: 'CONNECT', origin: {} });
+		    media.send({ type: 'PLAY', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
+		    
+		    media.on('message', function(data, broadcast) {
+			  	if(data.type == 'MEDIA_STATUS') {
+			  		if (data.requestId==corrRequestId) {
+				  		mediaStatus = data;
+				  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
+				  	}
+			 	}
+		   	});
+	  	});
+
+	 	client.on('error', function(err) {
+		 	console.error('Error thrown', err);
+		 	exception = err;
+		});
+	 } catch (e) {
+	 	console.error('Exception caught: ' + e);
+		exception = e;
+	}
+
+  	return new Promise(resolve => {
+		setTimeout(() => {
+			try{connection.send({ type: 'CLOSE' }); client.close();}
+			catch (e) {console.error('Exception caught: '+e); exception=e;}
+
+			if (!exception) {
+				resolve(JSON.stringify(mediaStatus));
+			}
+	    	resolve(null);
+	  	}, timeOutDelay);
+	});
 }
 
 function setMediaSkipBackward(deviceAddress, sessionId, mediaSessionId){
