@@ -1,14 +1,33 @@
-const hostname = '127.0.0.1';
-const port = 3000;
 const http = require('http');
 const Client = require('castv2').Client;
 const mdns = require('mdns');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
+const args = require('minimist')(process.argv.slice(2));
+var hostname = '127.0.0.1';
+var port = 3000;
 var currenRequestId = 1;
 var timeOutDelay = 2000;
 
+interpretArguments();
 createWebServer();
+
+//HANDLE ARGUMENTS
+function interpretArguments() {
+	debug('Args: %s', JSON.stringify(args));
+	if (args.hostname) {
+		hostname = args.hostname;
+	}
+	if (args.port) {
+		port = args.port;
+	}
+	if (args.timeOutDelay) {
+		timeOutDelay = args.timeOutDelay;
+	}
+	if (args.currenRequestId) {
+		currenRequestId = args.currenRequestId;
+	}
+}
 
 //WEBSERVER
 function createWebServer() {
