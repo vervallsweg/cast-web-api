@@ -9,24 +9,19 @@ However my code is **verry badly written and experimental code, not intendend fo
 
 First you'll need to install the dependencies of this project, preferably via npm.
 
-    $ npm install castv2, mdns, debug, http, url
+    $ npm install castv2, mdns, debug, http, url, minimist
 
 Afterwards simply clone the repo to your prefered destination
 
     $ git clone https://github.com/vervallsweg/cast-web-api.git
 
-
-By default the server runs localhost:3000. They can be adjusted by changing const hostname and port in line 1-2.
-
-```
-const hostname = '127.0.0.1';
-const port = 3000;
-```
-
 Now you can simply call the script and the web-api should be up and running!
 
     $ node (yourdirectory)/castWebApi.js
 
+By default the server runs localhost:3000. They can be adjusted with the --hostname --port arguments:
+
+	$ node (yourdirectory)/castWebApi.js --hostname=192.168.0.11 --port=8080
 
 ## Usage
 
@@ -120,15 +115,18 @@ The server will return an HTTP status code so you can quickly determin if the re
 - 500: Comunication with Cast device failed, enable debuging to check for possible errors
 
 ## Server settings
-Hostname and port are hardcoded and must be change in code, see [Installation](https://github.com/vervallsweg/cast-web-api/#installation "Installation").
-
-Further, basic settings can be set using the setConfig request url. For now just the timeOut value can be changed.
+Basic settings can be set using the setConfig request url or the corresponding command line argument. Server hostname and port can only be set from the command line (see: [Installation](https://github.com/vervallsweg/cast-web-api/#installation "Installation")). The requestUrl only supports setting one parameter at a time, multiple parameters will be ignored.
 
 ### Parameters
-#### timeOut (ms)
+#### timeOut (ms) [2000]
 **Returns OK: timeOut set to: ms**,
 
 this sets the time for the server to wait for an answer from the cast device. By default it is set to 2000ms (2s). This paramteter effects all requests that use the network. Even if an answer is received by the server, it will still wait the set amount of time. The last message that is received in that time frame will be returned.
+
+#### currenRequestId (ms) [1]
+**Returns OK: currenRequestId set to: ms**,
+
+the Cast protocoll requires a requestId for each request made. The API creates a unique requestId for each request by incrementing an initial value, currentRequestId.
 
 ## Debugging
 cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
