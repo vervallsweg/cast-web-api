@@ -570,6 +570,52 @@ function setDevicePlaybackStop(address, sId) {
 	});
 }
 
+function setMediaPlayback(address) {
+	var deviceStatus, connection, receiver, exception;
+	var client = new Client();
+	var corrRequestId = getNewRequestId();
+
+	debug('setDevicePlaybackStop addr: %s', address, 'seId:', sId);
+	try {
+		client.connect(address, function() {
+		    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
+
+		    connection.send({ type: 'CONNECT' });
+		    receiver.send({ type: 'STOP', sessionId: sId, requestId: corrRequestId });
+
+		    receiver.on('message', function(data, broadcast) {
+			  	if(data.type == 'RECEIVER_STATUS') {
+			  		if (data.requestId==corrRequestId) {
+				  		deviceStatus = data;
+				  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
+				  	}
+			 	}
+		   	});
+	  	});
+
+	  	client.on('error', function(err) {
+		 	console.error('Error thrown', err);
+		 	exception = err;
+		});
+	} catch (e) {
+	 	console.error('Exception caught: ' + e);
+		exception = e;
+	}
+
+  	return new Promise(resolve => {
+		setTimeout(() => {
+			try{connection.send({ type: 'CLOSE' }); client.close();}
+			catch (e) {console.error('Exception caught: '+e); exception=e;}
+
+			if (!exception) {
+				resolve(JSON.stringify(deviceStatus));
+			}
+	    	resolve(null);
+	  	}, timeOutDelay);
+	});
+}
+
 function getNewRequestId(){
 	if(currenRequestId > 9998){
 		currenRequestId=1;
