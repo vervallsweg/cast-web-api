@@ -232,6 +232,7 @@ function getDevices() {
 function getDeviceStatus(address) {
 	var deviceStatus, connection, receiver, exception;
 	var client = new Client();
+	var corrRequestId = getNewRequestId();
 
 	try {
 		debug('getDeviceStatus addr: %a', address);
@@ -240,12 +241,14 @@ function getDeviceStatus(address) {
 		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
 		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
+			receiver.send({ type: 'GET_STATUS', requestId: corrRequestId });
 		    
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
-			  		deviceStatus = data;
-			  		debug('getDeviceStatus recv: %s', JSON.stringify(deviceStatus));
+			  		if (data.requestId==corrRequestId) {
+			  			deviceStatus = data;
+			  			debug('getDeviceStatus recv: %s', JSON.stringify(deviceStatus));
+			  		}
 			 	}
 		   	});
 	  	});
@@ -253,10 +256,10 @@ function getDeviceStatus(address) {
 		 	console.error('Error thrown', err);
 		 	exception = err;
 		});
-	 } catch (e) {
+	} catch (e) {
 	 	console.error('Exception caught: ' + e);
 		exception = e;
-	 } 
+	} 
 	
 
   	return new Promise(resolve => {
@@ -275,6 +278,7 @@ function getDeviceStatus(address) {
 function setDeviceVolume(address, volume) {
 	var deviceStatus, connection, receiver, exception;
 	var client = new Client();
+	var corrRequestId = getNewRequestId();
 	
 	debug('setDeviceVolume addr: %s', address, 'volu:', volume);
  	try {
@@ -283,13 +287,15 @@ function setDeviceVolume(address, volume) {
 		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
 		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'SET_VOLUME', volume: { level: volume }, requestId: getNewRequestId() });
+			receiver.send({ type: 'SET_VOLUME', volume: { level: volume }, requestId: corrRequestId });
 		    
 		    receiver.on('message', function(data, broadcast) {
-			  	if(data.type == 'RECEIVER_STATUS') {
-			  		deviceStatus = data;
-			  		debug('setDeviceVolume recv: %s', JSON.stringify(deviceStatus));
-			 	}
+		    	if (data.requestId==corrRequestId) {
+				  	if(data.type == 'RECEIVER_STATUS') {
+				  		deviceStatus = data;
+				  		debug('setDeviceVolume recv: %s', JSON.stringify(deviceStatus));
+				 	}
+				}
 		   	});
 	  	});
 
@@ -318,6 +324,7 @@ function setDeviceVolume(address, volume) {
 function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
 	var deviceStatus, connection, receiver, exception;
 	var client = new Client();
+	var corrRequestId = getNewRequestId();
 
 	debug('setDeviceMuted addr: %s', address, 'muted:', muted);
  	try {
@@ -326,12 +333,14 @@ function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
 		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
 		    connection.send({ type: 'CONNECT' });
-			receiver.send({ type: 'SET_VOLUME', volume: { muted: muted }, requestId: getNewRequestId() });
+			receiver.send({ type: 'SET_VOLUME', volume: { muted: muted }, requestId: corrRequestId });
 		    
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
-			  		deviceStatus = data;
-			  		debug('setDeviceMuted recv: %s', JSON.stringify(deviceStatus));
+			  		if (data.requestId==corrRequestId) {
+				  		deviceStatus = data;
+				  		debug('setDeviceMuted recv: %s', JSON.stringify(deviceStatus));
+				  	}
 			 	}
 		   	});
 	  	});
@@ -361,6 +370,7 @@ function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
 function getMediaStatus(address, sessionId) {
 	var mediaStatus, connection, receiver, media, exception;
 	var client = new Client();
+	var corrRequestId = getNewRequestId();
 
 	debug('getMediaStatus addr: %s', address, 'seId:', sessionId);
 	try {
@@ -369,12 +379,14 @@ function getMediaStatus(address, sessionId) {
 		    media = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
 		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
+		    media.send({ type: 'GET_STATUS', requestId: corrRequestId });
 	 
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
-			  		mediaStatus = data;
-			  		debug('getMediaStatus recv: %s', JSON.stringify(mediaStatus));
+			  		if (data.requestId==corrRequestId) {
+				  		mediaStatus = data;
+				  		debug('getMediaStatus recv: %s', JSON.stringify(mediaStatus));
+				  	}
 			 	}
 		   	});
 	  	});
@@ -404,6 +416,7 @@ function getMediaStatus(address, sessionId) {
 function setMediaPlaybackPause(address, sId, mediaSId) {
 	var mediaStatus, connection, receiver, media, exception;
 	var client = new Client();
+	var corrRequestId = getNewRequestId();
 
 	debug('setMediaPlaybackPause addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
  	try {
@@ -412,12 +425,14 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 		    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
 		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'PAUSE', requestId: getNewRequestId(), mediaSessionId: mediaSId, sessionId: sId });
+		    media.send({ type: 'PAUSE', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
 		    
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
-			  		mediaStatus = data;
-			  		debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
+			  		if (data.requestId==corrRequestId) {
+				  		mediaStatus = data;
+				  		debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
+				  	}
 			 	}
 		   	});
 	  	});
@@ -447,6 +462,7 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 function setMediaPlaybackPlay(address, sId, mediaSId) {
 	var mediaStatus, connection, receiver, media, exception;
 	var client = new Client();
+	var corrRequestId = getNewRequestId();
 
 	debug('setMediaPlaybackPlay addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
  	try {
@@ -455,12 +471,14 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 		    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
 		    connection.send({ type: 'CONNECT', origin: {} });
-		    media.send({ type: 'PLAY', requestId: getNewRequestId(), mediaSessionId: mediaSId, sessionId: sId });
+		    media.send({ type: 'PLAY', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
 		    
 		    media.on('message', function(data, broadcast) {
 			  	if(data.type == 'MEDIA_STATUS') {
-			  		mediaStatus = data;
-			  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
+			  		if (data.requestId==corrRequestId) {
+				  		mediaStatus = data;
+				  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
+				  	}
 			 	}
 		   	});
 	  	});
@@ -490,6 +508,7 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 function setDevicePlaybackStop(address, sId) {
 	var deviceStatus, connection, receiver, exception;
 	var client = new Client();
+	var corrRequestId = getNewRequestId();
 
 	debug('setDevicePlaybackStop addr: %s', address, 'seId:', sId);
 	try {
@@ -498,12 +517,14 @@ function setDevicePlaybackStop(address, sId) {
 		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
 		    connection.send({ type: 'CONNECT' });
-		    receiver.send({ type: 'STOP', sessionId: sId, requestId: getNewRequestId() });
+		    receiver.send({ type: 'STOP', sessionId: sId, requestId: corrRequestId });
 
 		    receiver.on('message', function(data, broadcast) {
 			  	if(data.type == 'RECEIVER_STATUS') {
-			  		deviceStatus = data;
-			  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
+			  		if (data.requestId==corrRequestId) {
+				  		deviceStatus = data;
+				  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
+				  	}
 			 	}
 		   	});
 	  	});
