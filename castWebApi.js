@@ -185,6 +185,18 @@ function createWebServer() {
 			}
 		}
 
+		else if (parsedUrl['pathname']=="/setMediaPlayback") {
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			if (parsedUrl['query']['address'] && parsedUrl['query']['mediaType'] && parsedUrl['query']['mediaUrl'] && parsedUrl['query']['mediaStreamType'] && parsedUrl['query']['mediaTitle'] && parsedUrl['query']['mediaSubtitle'] && parsedUrl['query']['mediaImageUrl']) {
+				setMediaPlayback(parsedUrl['query']['address'], parsedUrl['query']['mediaType'], parsedUrl['query']['mediaUrl'], parsedUrl['query']['mediaStreamType'], parsedUrl['query']['mediaTitle'], parsedUrl['query']['mediaSubtitle'], parsedUrl['query']['mediaImageUrl']);
+				res.end('Playback started');
+			} else {
+				res.statusCode = 400;
+				res.end('Parameter error');
+			}
+		}
+
 		else if (parsedUrl['pathname']=="/setConfig") {
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json');
@@ -551,7 +563,7 @@ function setDevicePlaybackStop(address, sId) {
 	});
 }
 
-function setMediaPlayback(address, mediaUrl) {
+function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl) {
 	var Client = require('castv2-client').Client;
 	var DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 	var client = new Client();
@@ -559,35 +571,41 @@ function setMediaPlayback(address, mediaUrl) {
   	client.connect(address, function() {
 		client.launch(DefaultMediaReceiver, function(err, player) {
 	 		var media = {
-				contentId: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/big_buck_bunny_1080p.mp4',
-		        contentType: 'video/mp4',
-		        streamType: 'BUFFERED',
+				contentId: mediaUrl,
+		        contentType: mediaType,
+		        streamType: mediaStreamType,
 
 		        metadata: {
 		         	type: 0,
 		          	metadataType: 0,
-		          	title: "Big Buck Bunny", 
+		          	title: mediaTitle,
+		          	subtitle: mediaSubtitle,
 		          	images: [
-		            	{ url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg' }
+		            	{ url: mediaImageUrl }
 		          	]
 		        }        
 		   	};
 
 		   	player.on('status', function(status) {
-		      	console.log('status broadcast playerState=%s', status.playerState);
+		      	debug('status broadcast playerState=%s', status.playerState);
 		  	});
 
-		  	console.log('app "%s" launched, loading media %s ...', player.session.displayName, media.contentId);
+		  	debug('App "%s" launched, loading media %s ...', player.session.displayName, media.contentId);
 
 		  	player.load(media, { autoplay: true }, function(err, status) {
-		      	console.log('media loaded playerState=%s', status.playerState);
+		      	console.log('Media loaded playerState=%s', status.playerState);
 		    });
+
+		 	setTimeout(() => {
+				debug('Closing client connection');
+				//client.close();
+	  		}, timeOutDelay);
 	    });
  	});
 
   	client.on('error', function(err) {
-    	
-    	client.close();
+  		handleException(err);
+  		try{client.close();}catch(e){handleException(e);}
   	});
 }
 
