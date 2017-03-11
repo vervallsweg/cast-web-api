@@ -570,50 +570,44 @@ function setDevicePlaybackStop(address, sId) {
 	});
 }
 
-function setMediaPlayback(address) {
-	var deviceStatus, connection, receiver, exception;
+function setMediaPlayback(address, mediaUrl) {
+	var Client = require('castv2-client').Client;
+	var DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 	var client = new Client();
-	var corrRequestId = getNewRequestId();
 
-	debug('setDevicePlaybackStop addr: %s', address, 'seId:', sId);
-	try {
-		client.connect(address, function() {
-		    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
+  	client.connect(address, function() {
+		client.launch(DefaultMediaReceiver, function(err, player) {
+	 		var media = {
+				contentId: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/big_buck_bunny_1080p.mp4',
+		        contentType: 'video/mp4',
+		        streamType: 'BUFFERED',
 
-		    connection.send({ type: 'CONNECT' });
-		    receiver.send({ type: 'STOP', sessionId: sId, requestId: corrRequestId });
+		        metadata: {
+		         	type: 0,
+		          	metadataType: 0,
+		          	title: "Big Buck Bunny", 
+		          	images: [
+		            	{ url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg' }
+		          	]
+		        }        
+		   	};
 
-		    receiver.on('message', function(data, broadcast) {
-			  	if(data.type == 'RECEIVER_STATUS') {
-			  		if (data.requestId==corrRequestId) {
-				  		deviceStatus = data;
-				  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
-				  	}
-			 	}
-		   	});
-	  	});
+		   	player.on('status', function(status) {
+		      	console.log('status broadcast playerState=%s', status.playerState);
+		  	});
 
-	  	client.on('error', function(err) {
-		 	console.error('Error thrown', err);
-		 	exception = err;
-		});
-	} catch (e) {
-	 	console.error('Exception caught: ' + e);
-		exception = e;
-	}
+		  	console.log('app "%s" launched, loading media %s ...', player.session.displayName, media.contentId);
 
-  	return new Promise(resolve => {
-		setTimeout(() => {
-			try{connection.send({ type: 'CLOSE' }); client.close();}
-			catch (e) {console.error('Exception caught: '+e); exception=e;}
+		  	player.load(media, { autoplay: true }, function(err, status) {
+		      	console.log('media loaded playerState=%s', status.playerState);
+		    });
+	    });
+ 	});
 
-			if (!exception) {
-				resolve(JSON.stringify(deviceStatus));
-			}
-	    	resolve(null);
-	  	}, timeOutDelay);
-	});
+  	client.on('error', function(err) {
+    	
+    	client.close();
+  	});
 }
 
 function getNewRequestId(){
