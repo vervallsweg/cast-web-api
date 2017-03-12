@@ -19,7 +19,7 @@ Now you can simply call the script and the web-api should be up and running!
 
     $ node (yourdirectory)/castWebApi.js
 
-By default the server runs localhost:3000. They can be adjusted with the --hostname --port arguments:
+By default the server runs on localhost:3000. They can be adjusted with the --hostname --port arguments:
 
 	$ node (yourdirectory)/castWebApi.js --hostname=192.168.0.11 --port=8080
 
@@ -106,6 +106,7 @@ and stops casting to the device, kills currently running session.
 
 #### setMediaPlayback (address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl)
 **Returns MEDIA_STATUS,**
+
 after playback of your custom media has started. For this it uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember, always check device compatibility (formats, screen available) before casting your media to a device! Oh and don't forget to url encode paramaters if necessary, the server will decode them.
 - address: IP adress of the Google Cast device
 - media type: [supported media](https://developers.google.com/cast/docs/media "supported media")
