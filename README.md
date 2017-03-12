@@ -3,15 +3,15 @@ Quick and dirty Node.js web API for Google Cast enabled devices.
 
 This simple web API is based on the awesome [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
 
-However my code is **verry badly written and experimental code, not intendend for any production environment!**
+However my code is **verry badly written and experimental, not intendend for any production environment!**
 
 ## Installation
 
 First you'll need to install the dependencies of this project, preferably via npm.
 
-    $ npm install castv2, mdns, debug, http, url, minimist
+    $ npm install castv2 castv2-client mdns debug http url minimist
 
-Afterwards simply clone the repo to your prefered destination
+Afterwards clone the repo to your prefered destination
 
     $ git clone https://github.com/vervallsweg/cast-web-api.git
 
@@ -19,7 +19,7 @@ Now you can simply call the script and the web-api should be up and running!
 
     $ node (yourdirectory)/castWebApi.js
 
-By default the server runs localhost:3000. They can be adjusted with the --hostname --port arguments:
+By default the server runs on localhost:3000. They can be adjusted with the --hostname --port arguments:
 
 	$ node (yourdirectory)/castWebApi.js --hostname=192.168.0.11 --port=8080
 
@@ -104,6 +104,16 @@ and stops casting to the device, kills currently running session.
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 
+#### setMediaPlayback (address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl)
+**Returns MEDIA_STATUS,**
+
+after playback of your custom media has started. For this it uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember, always check device compatibility (formats, screen available) before casting your media to a device! Oh and don't forget to url encode paramaters if necessary, the server will decode them.
+- address: IP adress of the Google Cast device
+- media type: [supported media](https://developers.google.com/cast/docs/media "supported media")
+- mediaUrl: HTTP(S) url to your content
+- mediaStreamType: Kind of stream - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
+- mediaTitle (->title), mediaSubtitle(->subtitle), mediaImageUrl(->images[0]): see [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
+
 #### setConfig
 See [server settings](https://github.com/vervallsweg/cast-web-api/#Server_settings "server settings")
 
@@ -118,10 +128,15 @@ The server will return an HTTP status code so you can quickly determin if the re
 Basic settings can be set using the setConfig request url or the corresponding command line argument. Server hostname and port can only be set from the command line (see: [Installation](https://github.com/vervallsweg/cast-web-api/#installation "Installation")). The requestUrl only supports setting one parameter at a time, multiple parameters will be ignored.
 
 ### Parameters
-#### timeOut (ms) [2000]
-**Returns OK: timeOut set to: ms**,
+#### networkTimeout (ms) [2000]
+**Returns OK: networkTimeout set to: ms**,
 
-this sets the time for the server to wait for an answer from the cast device. By default it is set to 2000ms (2s). This paramteter effects all requests that use the network. Even if an answer is received by the server, it will still wait the set amount of time. The last message that is received in that time frame will be returned.
+this sets the time for the server to wait for an answer from the cast device. By default it is set to 2000ms (2s). If a response is received by the API earlier than the timeout, it will be returned immediately.
+
+#### appLoadTimeout (ms) [5000]
+**Returns OK: appLoadTimeout set to: ms**,
+
+time for the server to wait untill your custom media is `PLAYING`. Depends on media type, size, network and device performance.
 
 #### currenRequestId (ms) [1]
 **Returns OK: currenRequestId set to: ms**,
@@ -137,7 +152,7 @@ If you require further information you can enable debugging for the underlying c
 
     $ DEBUG=* node (yourdirectory)/castWebApi.js
 
-## Furher information
+## Further information
 [thibauts](https://github.com/thibauts "thibauts profile") wrote a great [protocol description](https://github.com/thibauts/node-castv2#protocol-description "protocol description"). I can only highly recommend reading it.
 
 If you read the first sentences of this file it goes without saying that you **should not** run this API on the internet. Run it behind a firewall only in your local network!

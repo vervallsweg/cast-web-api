@@ -7,7 +7,8 @@ const args = require('minimist')(process.argv.slice(2));
 var hostname = '127.0.0.1';
 var port = 3000;
 var currenRequestId = 1;
-var timeOutDelay = 2000;
+var networkTimeout = 2000;
+var appLoadTimeout = 5000;
 
 interpretArguments();
 createWebServer();
@@ -21,8 +22,11 @@ function interpretArguments() {
 	if (args.port) {
 		port = args.port;
 	}
-	if (args.timeOutDelay) {
-		timeOutDelay = args.timeOutDelay;
+	if (args.networkTimeout) {
+		networkTimeout = args.networkTimeout;
+	}
+	if (args.appLoadTimeout) {
+		appLoadTimeout = args.appLoadTimeout;
 	}
 	if (args.currenRequestId) {
 		currenRequestId = args.currenRequestId;
@@ -185,15 +189,38 @@ function createWebServer() {
 			}
 		}
 
+		else if (parsedUrl['pathname']=="/setMediaPlayback") {
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			if (parsedUrl['query']['address'] && parsedUrl['query']['mediaType'] && parsedUrl['query']['mediaUrl'] && parsedUrl['query']['mediaStreamType'] && parsedUrl['query']['mediaTitle'] && parsedUrl['query']['mediaSubtitle'] && parsedUrl['query']['mediaImageUrl']) {
+				setMediaPlayback(parsedUrl['query']['address'], parsedUrl['query']['mediaType'], parsedUrl['query']['mediaUrl'], parsedUrl['query']['mediaStreamType'], parsedUrl['query']['mediaTitle'], parsedUrl['query']['mediaSubtitle'], parsedUrl['query']['mediaImageUrl']).then(mediaStatus => {
+					if (mediaStatus) {
+						res.statusCode = 200;
+						res.setHeader('Content-Type', 'application/json');
+						res.end(mediaStatus);
+					} else {
+						res.statusCode = 500;
+						res.end();
+					}
+				});
+			} else {
+				res.statusCode = 400;
+				res.end('Parameter error');
+			}
+		}
+
 		else if (parsedUrl['pathname']=="/setConfig") {
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json');
-			if (parsedUrl['query']['timeOut']) {
-				timeOutDelay = parsedUrl['query']['timeOut'];
-				res.end('OK: timeOut set to: '+parsedUrl['query']['timeOut']);
+			if (parsedUrl['query']['networkTimeout']) {
+				networkTimeout = parsedUrl['query']['networkTimeout'];
+				res.end('OK: networkTimeout set to: '+parsedUrl['query']['networkTimeout']);
 			} else if (parsedUrl['query']['currenRequestId']) {
 				currenRequestId = parsedUrl['query']['currenRequestId']
 				res.end('OK: currenRequestId set to: '+parsedUrl['query']['currenRequestId']);
+			} else if (parsedUrl['query']['appLoadTimeout']) {
+				currenRequestId = parsedUrl['query']['appLoadTimeout']
+				res.end('OK: appLoadTimeout set to: '+parsedUrl['query']['appLoadTimeout']);
 			} else {
 				res.statusCode = 400;
 				res.end('Parameter error');
@@ -244,7 +271,7 @@ function getDevices() {
 				}
 			}
 			resolve(null);
-	  	}, timeOutDelay);
+	  	}, networkTimeout);
 	});
 }
 
@@ -287,7 +314,7 @@ function getDeviceStatus(address) {
 		setTimeout(() => {
 			closeClientConnection(client, connection);
 			resolve(null);
-	  	}, timeOutDelay);
+	  	}, networkTimeout);
 	});
 }
 
@@ -331,7 +358,7 @@ function setDeviceVolume(address, volume) {
 		setTimeout(() => {
 			closeClientConnection(client, connection);
 			resolve(null);
-	  	}, timeOutDelay);
+	  	}, networkTimeout);
 	});
 }
 
@@ -374,7 +401,7 @@ function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
 	  	setTimeout(() => {
 			closeClientConnection(client, connection);
 			resolve(null);
-	  	}, timeOutDelay);	
+	  	}, networkTimeout);	
 	});
 }
 
@@ -418,7 +445,7 @@ function getMediaStatus(address, sessionId) {
 		setTimeout(() => {
 			closeClientConnection(client, connection);
 			resolve(null);
-	  	}, timeOutDelay);
+	  	}, networkTimeout);
 	});
 }
 
@@ -461,7 +488,7 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 		setTimeout(() => {
 			closeClientConnection(client, connection);
 			resolve(null);
-	  	}, timeOutDelay);
+	  	}, networkTimeout);
 	});
 }
 
@@ -504,7 +531,7 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 		setTimeout(() => {
 			closeClientConnection(client, connection);
 			resolve(null);
-	  	}, timeOutDelay);
+	  	}, networkTimeout);
 	});
 }
 
@@ -547,7 +574,69 @@ function setDevicePlaybackStop(address, sId) {
 		setTimeout(() => {
 			closeClientConnection(client, connection);
 			resolve(null);
-	  	}, timeOutDelay);
+	  	}, networkTimeout);
+	});
+}
+
+function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl) {
+	return new Promise(resolve => {
+		var Client = require('castv2-client').Client;
+		var DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
+		var client = new Client();
+
+	  	client.connect(address, function() {
+			client.launch(DefaultMediaReceiver, function(err, player) {
+		 		var media = {
+					contentId: mediaUrl,
+			        contentType: mediaType,
+			        streamType: mediaStreamType,
+
+			        metadata: {
+			         	type: 0,
+			          	metadataType: 0,
+			          	title: mediaTitle,
+			          	subtitle: mediaSubtitle,
+			          	images: [
+			            	{ url: mediaImageUrl }
+			          	]
+			        }        
+			   	};
+
+				player.on('close', function() {
+					debug('Closing previously setMediaPlayback session');
+					try{client.close();}catch(e){handleException(e); resolve(null);}
+				});
+
+			  	player.load(media, { autoplay: true }, function(err, status) {
+			      	debug('Media loaded playerState: ', status.playerState);
+			    });
+
+			    player.on('status', function(status) {
+			        debug('status.playerState: ', status.playerState);
+			        if (status.playerState=='PLAYING') {
+			        	debug('status.playerState is PLAYING');
+			        	if (player.session.sessionId) {
+					  		console.log('Player has sessionId: ', player.session.sessionId);
+
+					  		getMediaStatus(address, player.session.sessionId).then(mediaStatus => {
+					    		debug('getMediaStatus return value: ', mediaStatus);
+					    		resolve(mediaStatus);
+							});
+					  	}
+			        }
+			   	});
+			
+			    setTimeout(() => {
+			    	resolve(null);
+			  	}, appLoadTimeout);
+		    });
+	 	});
+
+	  	client.on('error', function(err) {
+	  		handleException(err);
+	  		try{client.close();}catch(e){handleException(e);}
+	  		resolve(null);
+	  	});
 	});
 }
 
