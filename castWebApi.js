@@ -252,9 +252,6 @@ function getDevices() {
 		browser.on('serviceUp', function(service) {
 			var currentDevice = [service.name, service.addresses[0], service.port];
 	  		debug('getDevices found: %s', currentDevice.toString());
-	  		/*if (!service.name.includes('Group')) {
-	  			debug('Doesnot seem to be part of group');
-	  		}*/
 	  		devices.push(currentDevice);
 		});
 		
