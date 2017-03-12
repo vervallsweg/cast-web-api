@@ -467,9 +467,11 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 			    media.on('message', function(data, broadcast) {
 				  	if(data.type == 'MEDIA_STATUS') {
 				  		if (data.requestId==corrRequestId) {
-					  		mediaStatus = data;
-					  		debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
-					  		resolve(JSON.stringify(mediaStatus));
+				  			if (data.status[0].playerState=="PAUSED") {
+				  				mediaStatus = data;
+					  			debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
+					  			resolve(JSON.stringify(mediaStatus));
+				  			}
 					  	}
 				 	}
 			   	});
@@ -510,9 +512,11 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 			    media.on('message', function(data, broadcast) {
 				  	if(data.type == 'MEDIA_STATUS') {
 				  		if (data.requestId==corrRequestId) {
-					  		mediaStatus = data;
-					  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
-					  		resolve(JSON.stringify(mediaStatus));
+				  			if (data.status[0].playerState=="PLAYING") {
+						  		mediaStatus = data;
+						  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
+						  		resolve(JSON.stringify(mediaStatus));
+						  	}
 					  	}
 				 	}
 			   	});
