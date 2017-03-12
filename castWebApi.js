@@ -25,6 +25,9 @@ function interpretArguments() {
 	if (args.networkTimeout) {
 		networkTimeout = args.networkTimeout;
 	}
+	if (args.appLoadTimeout) {
+		appLoadTimeout = args.appLoadTimeout;
+	}
 	if (args.currenRequestId) {
 		currenRequestId = args.currenRequestId;
 	}
@@ -209,12 +212,15 @@ function createWebServer() {
 		else if (parsedUrl['pathname']=="/setConfig") {
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json');
-			if (parsedUrl['query']['timeOut']) {
-				networkTimeout = parsedUrl['query']['timeOut'];
-				res.end('OK: timeOut set to: '+parsedUrl['query']['timeOut']);
+			if (parsedUrl['query']['networkTimeout']) {
+				networkTimeout = parsedUrl['query']['networkTimeout'];
+				res.end('OK: networkTimeout set to: '+parsedUrl['query']['networkTimeout']);
 			} else if (parsedUrl['query']['currenRequestId']) {
 				currenRequestId = parsedUrl['query']['currenRequestId']
 				res.end('OK: currenRequestId set to: '+parsedUrl['query']['currenRequestId']);
+			} else if (parsedUrl['query']['appLoadTimeout']) {
+				currenRequestId = parsedUrl['query']['appLoadTimeout']
+				res.end('OK: appLoadTimeout set to: '+parsedUrl['query']['appLoadTimeout']);
 			} else {
 				res.statusCode = 400;
 				res.end('Parameter error');
