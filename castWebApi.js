@@ -433,17 +433,17 @@ function getMediaStatus(address, sessionId) {
 
 		 	client.on('error', function(err) {
 			 	handleException(err);
-				closeClientConnection(client, connection);
+				closeClient(client);
 				resolve(null);
 			});
 		} catch (e) {
 		 	handleException(err);
-			closeClientConnection(client, connection);
+			closeClient(client);
 			resolve(null);
 		}
 
 		setTimeout(() => {
-			closeClientConnection(client, connection);
+			closeClient(client);
 			resolve(null);
 	  	}, networkTimeout);
 	});
@@ -479,16 +479,16 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 
 		  	client.on('error', function(err) {
 			 	handleException(err);
-				closeClientConnection(client, connection);
+				closeClient(client);
 				resolve(null);
 			});
 		  } catch (e) {
 		 	handleException(err);
-			closeClientConnection(client, connection);
+			closeClient(client);
 			resolve(null);
 		}
 		setTimeout(() => {
-			closeClientConnection(client, connection);
+			closeClient(client);
 			resolve(null);
 	  	}, networkTimeout);
 	});
@@ -524,16 +524,16 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 
 		 	client.on('error', function(err) {
 			 	handleException(err);
-				closeClientConnection(client, connection);
+				closeClient(client);
 				resolve(null);
 			});
 		 } catch (e) {
 		 	handleException(err);
-			closeClientConnection(client, connection);
+			closeClient(client);
 			resolve(null);
 		}
 		setTimeout(() => {
-			closeClientConnection(client, connection);
+			closeClient(client);
 			resolve(null);
 	  	}, networkTimeout);
 	});
@@ -606,11 +606,6 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 			        }        
 			   	};
 
-				player.on('close', function() {
-					debug('Closing previously setMediaPlayback session');
-					try{client.close();}catch(e){handleException(e); resolve(null);}
-				});
-
 			  	player.load(media, { autoplay: true }, function(err, status) {
 			      	debug('Media loaded playerState: ', status.playerState);
 			    });
@@ -631,6 +626,7 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 			   	});
 			
 			    setTimeout(() => {
+			    	closeClient(client);
 			    	resolve(null);
 			  	}, appLoadTimeout);
 		    });
@@ -654,8 +650,22 @@ function getNewRequestId(){
 }
 
 function closeClientConnection(client, connection) {
+	closeConnection(connection);
+	closeClient(client);
+}
+
+function closeConnection(connection) {
+	debug('closing connection');
 	try {
 		connection.send({ type: 'CLOSE' });
+	} catch (e) {
+		handleException(e);
+	}
+}
+
+function closeClient(client) {
+	debug('closing client');
+	try {
 		client.close();
 	} catch (e) {
 		handleException(e);
