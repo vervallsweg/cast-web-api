@@ -57,7 +57,7 @@ Returns a JSON Array of devices found on the network
 **Returns DEVICE_STATUS,**
 
 which is JSON encoded and part of the Google Cast protocol.
-- address: IP adress of the Google Cast device
+- address: IP adress:port of the Google Cast device, if no port is provided 8009 is assumed
 
 #### setDeviceVolume (address) (volume) 
 **Returns DEVICE_STATUS,**

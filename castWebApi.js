@@ -8,7 +8,7 @@ var hostname = '127.0.0.1';
 var port = 3000;
 var currenRequestId = 1;
 var networkTimeout = 2000;
-var appLoadTimeout = 5000;
+var appLoadTimeout = 6000;
 
 interpretArguments();
 createWebServer();
@@ -283,7 +283,7 @@ function getDeviceStatus(address) {
 
 		try {
 			debug('getDeviceStatus addr: %a', address);
-		 	client.connect(address, function() {
+		 	client.connect(parseAddress(address), function() {
 			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
@@ -326,7 +326,7 @@ function setDeviceVolume(address, volume) {
 		
 		debug('setDeviceVolume addr: %s', address, 'volu:', volume);
 	 	try {
-	 		client.connect(address, function() {
+	 		client.connect(parseAddress(address), function() {
 			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
@@ -370,7 +370,7 @@ function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
 
 		debug('setDeviceMuted addr: %s', address, 'muted:', muted);
 	 	try {
-	 		client.connect(address, function() {
+	 		client.connect(parseAddress(address), function() {
 			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
@@ -413,7 +413,7 @@ function getMediaStatus(address, sessionId) {
 
 		debug('getMediaStatus addr: %s', address, 'seId:', sessionId);
 		try {
-			client.connect(address, function() {
+			client.connect(parseAddress(address), function() {
 			    connection = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 			    media = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
@@ -457,7 +457,7 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 
 		debug('setMediaPlaybackPause addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
 	 	try {
-	 		client.connect(address, function() {
+	 		client.connect(parseAddress(address), function() {
 			    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 			    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
@@ -502,7 +502,7 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 
 		debug('setMediaPlaybackPlay addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
 	 	try {
-	 		client.connect(address, function() {
+	 		client.connect(parseAddress(address), function() {
 			    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 			    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
@@ -547,7 +547,7 @@ function setDevicePlaybackStop(address, sId) {
 
 		debug('setDevicePlaybackStop addr: %s', address, 'seId:', sId);
 		try {
-			client.connect(address, function() {
+			client.connect(parseAddress(address), function() {
 			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
 			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
@@ -588,7 +588,7 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 		var DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 		var client = new Client();
 
-	  	client.connect(address, function() {
+	  	client.connect(parseAddress(address), function() {
 			client.launch(DefaultMediaReceiver, function(err, player) {
 		 		var media = {
 					contentId: mediaUrl,
@@ -638,6 +638,22 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 	  		resolve(null);
 	  	});
 	});
+}
+
+function parseAddress(address){
+	ip=address.split(':')[0];
+	port=address.split(':')[1];
+
+	if (!port) {
+		port = 8009;
+	}
+
+	debug('IP: '+ip+' port: '+port);
+
+	return {
+      host: ip,
+      port: port
+    };
 }
 
 function getNewRequestId(){
