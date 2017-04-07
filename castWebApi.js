@@ -466,7 +466,7 @@ function setMediaPlaybackPause(address, sId, mediaSId) {
 			    
 			    media.on('message', function(data, broadcast) {
 				  	if(data.type == 'MEDIA_STATUS') {
-				  		if (data.requestId==corrRequestId) {
+				  		if (data.requestId==corrRequestId||data.requestId==0) {
 				  			if (data.status[0].playerState=="PAUSED") {
 				  				mediaStatus = data;
 					  			debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
@@ -511,7 +511,7 @@ function setMediaPlaybackPlay(address, sId, mediaSId) {
 			    
 			    media.on('message', function(data, broadcast) {
 				  	if(data.type == 'MEDIA_STATUS') {
-				  		if (data.requestId==corrRequestId) {
+				  		if (data.requestId==corrRequestId||data.requestId==0) { //FIX for TuneIn's broken receiver app which always returns with requestId 0
 				  			if (data.status[0].playerState=="PLAYING") {
 						  		mediaStatus = data;
 						  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
