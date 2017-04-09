@@ -1,6 +1,7 @@
 const http = require('http');
 const Client = require('castv2').Client;
 const mdns = require('mdns');
+mdns.Browser.defaultResolverSequence[1] = 'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]}); //fix for Raspberry Pi's mdns browser https://github.com/agnat/node_mdns/issues/130
 const url = require('url');
 const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
