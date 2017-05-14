@@ -44,7 +44,8 @@ Returns a JSON Array of devices found on the network
 	[
 		"device name",
 		"IP",
-		port
+		port,
+		"friendly name"
 	],
 	[
 		...
