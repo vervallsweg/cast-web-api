@@ -251,7 +251,7 @@ function getDevices() {
 
 	try {
 		browser.on('serviceUp', function(service) {
-			var currentDevice = [service.name, service.addresses[0], service.port];
+			var currentDevice = [service.name, service.addresses[0], service.port, service.txtRecord.fn];
 	  		debug('getDevices found: %s', currentDevice.toString());
 	  		devices.push(currentDevice);
 		});
