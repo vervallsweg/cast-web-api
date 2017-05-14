@@ -42,10 +42,10 @@ Returns a JSON Array of devices found on the network
 ``` 
 [
 	[
-		"device name",
-		"IP",
-		port,
-		"friendly name"
+		"deviceName": "Chromecast-...",
+		"deviceFriendlyName": "Living room",
+		"deviceAddress": "192.168.0.12",
+		"devicePort": 8009
 	],
 	[
 		...
