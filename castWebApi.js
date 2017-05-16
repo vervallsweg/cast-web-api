@@ -613,7 +613,11 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 			   	};
 
 			  	player.load(media, { autoplay: true }, function(err, status) {
-			      	debug('Media loaded playerState: ', status.playerState);
+			      	try{debug('Media loaded playerState: ', status.playerState);}
+			      	catch(e){
+			      		handleException(e);
+			      		try{player.close();}catch(e){handleException(e);}
+			      	}
 			    });
 
 			    player.on('status', function(status) {
