@@ -125,7 +125,7 @@ after playback of your custom media has started. For this it uses Google's [defa
 - mediaTitle (->title), mediaSubtitle(->subtitle), mediaImageUrl(->images[0]): see [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
 
 #### setConfig
-See [server settings](https://github.com/vervallsweg/cast-web-api/#Server_settings "server settings")
+See [server settings](https://github.com/vervallsweg/cast-web-api/#server-settings "server settings")
 
 ### HTTP response codes
 The server will return an HTTP status code so you can quickly determin if the request was successful or not
