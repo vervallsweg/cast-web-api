@@ -12,3 +12,7 @@ That should work on most distributions.
 
 ## Windows
 Either download Bonjour, which should be included in Apple iTunes, or download the [Bonjour SDK for Windows](http://www.softpedia.com/get/Programming/SDK-DDK/Bonjour-SDK.shtml#download "Bonjour SDK for Windows").
+Also required are [Python 2.X](https://www.python.org/downloads/release/python-2713/ "Python 2.X") (2.5>3.0) and a 
+Microsoft C++ Compiler. If you have none of these things installed simply open an administrative shell and run:
+
+	npm install -g windows-build-tools
