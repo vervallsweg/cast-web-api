@@ -7,7 +7,7 @@ However my code is **verry badly written and experimental, not intendend for any
 
 ## Installation
 
-First you'll need to install the dependencies of this project, preferably via npm.
+First you'll need to install the dependencies of this project, preferably via npm. If you're not running Mac OS X make sure to install [mdns dependencies](https://github.com/vervallsweg/cast-web-api/blob/master/mdns-installation.md "mdns dependencies")
 
     $ npm install castv2 castv2-client mdns debug http url minimist
 
@@ -22,6 +22,15 @@ Now you can simply call the script and the web-api should be up and running!
 By default the server runs on localhost:3000. They can be adjusted with the --hostname --port arguments:
 
 	$ node (yourdirectory)/castWebApi.js --hostname=192.168.0.11 --port=8080
+
+If you'd like to run the API in the background as a daemon [forever](https://github.com/foreverjs/forever "forever") is recommended
+
+	$ npm install forever -g
+
+Running the script and setting the parameters is mostly unchanged:
+
+	$ forever start castWebApi.js
+	$ forever stop castWebApi.js
 
 ## Usage
 

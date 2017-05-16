@@ -1,0 +1,13 @@
+# MDNS installation
+
+## MAC OS X
+You're good to go, everything is already installed!
+
+## Linux
+The node-mdns package requires the avahi dns_sd compat library and headers. On most distributions the package name is libavahi-compat-libdnssd-dev that obviously depends on your distribution.
+
+	$ [sudo] apt-get install libavahi-compat-libdnssd-dev
+
+That should work on most distributions.
+
+## Windows
