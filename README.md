@@ -119,7 +119,7 @@ and stops casting to the device, kills currently running session.
 
 after playback of your custom media has started. For this it uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember, always check device compatibility (formats, screen available) before casting your media to a device! Oh and don't forget to url encode paramaters if necessary, the server will decode them.
 - address: IP adress of the Google Cast device
-- media type: the Google Cast media type string, see: [supported media](https://developers.google.com/cast/docs/media#media-type-strings "supported media"). Don't just use mp3 or mp4, the correct string from the doc is needed (e.g. audio/mp3).
+- mediaType: the Google Cast media type string, see: [supported media](https://developers.google.com/cast/docs/media#media-type-strings "supported media"). Don't just use mp3 or mp4, the correct string from the doc is needed (e.g. audio/mp3).
 - mediaUrl: HTTP(S) url to your content
 - mediaStreamType: Kind of stream - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
 - mediaTitle (->title), mediaSubtitle(->subtitle), mediaImageUrl(->images[0]): see [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
