@@ -6,6 +6,14 @@
 	  	"node": ">= 4.1.0"
 	},
 	"main": "castWebApi.js",
+	"dependencies": {
+    	"debug": "^2.1.1",
+    	"http": "*",
+    	"castv2": "*",
+    	"mdns": "*",
+    	"url": "*",
+    	"minimist": "*"
+  	},
 	"repository": {
 	 	"type": "git",
 	 	"url": "git://github.com/vervallsweg/cast-web-api.git"
