@@ -7,7 +7,7 @@ const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
 var hostname = '127.0.0.1';
 var port = 3000;
-var currenRequestId = 1;
+var currentRequestId = 1;
 var networkTimeout = 2000;
 var appLoadTimeout = 6000;
 
@@ -29,8 +29,8 @@ function interpretArguments() {
 	if (args.appLoadTimeout) {
 		appLoadTimeout = args.appLoadTimeout;
 	}
-	if (args.currenRequestId) {
-		currenRequestId = args.currenRequestId;
+	if (args.currentRequestId) {
+		currentRequestId = args.currentRequestId;
 	}
 }
 
@@ -215,13 +215,30 @@ function createWebServer() {
 			res.setHeader('Content-Type', 'application/json');
 			if (parsedUrl['query']['networkTimeout']) {
 				networkTimeout = parsedUrl['query']['networkTimeout'];
-				res.end('OK: networkTimeout set to: '+parsedUrl['query']['networkTimeout']);
-			} else if (parsedUrl['query']['currenRequestId']) {
-				currenRequestId = parsedUrl['query']['currenRequestId']
-				res.end('OK: currenRequestId set to: '+parsedUrl['query']['currenRequestId']);
+				res.end('{"response": "ok", "networkTimeout": '+networkTimeout+'}');
+			} else if (parsedUrl['query']['currentRequestId']) {
+				currentRequestId = parsedUrl['query']['currentRequestId']
+				res.end('{"response": "ok", "currentRequestId": '+currentRequestId+'}');
 			} else if (parsedUrl['query']['appLoadTimeout']) {
-				currenRequestId = parsedUrl['query']['appLoadTimeout']
-				res.end('OK: appLoadTimeout set to: '+parsedUrl['query']['appLoadTimeout']);
+				appLoadTimeout = parsedUrl['query']['appLoadTimeout']
+				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
+			} else {
+				res.statusCode = 400;
+				res.end('Parameter error');
+			}
+		}
+
+		else if (parsedUrl['pathname']=="/getConfig") {
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json');
+			//console.log("parsedUrl.searchParams: "+ parsedUrl.searchParams);
+			
+			if (parsedUrl['query']['networkTimeout']) {
+				res.end('{"networkTimeout": '+networkTimeout+'}');
+			} else if (parsedUrl['query']['currentRequestId']) {
+				res.end('{"currentRequestId": '+currentRequestId+'}');
+			} else if (parsedUrl['query']['appLoadTimeout']) {
+				res.end('{"appLoadTimeout": '+appLoadTimeout+'}');
 			} else {
 				res.statusCode = 400;
 				res.end('Parameter error');
@@ -667,12 +684,12 @@ function parseAddress(address){
 }
 
 function getNewRequestId(){
-	if(currenRequestId > 9998){
-		currenRequestId=1;
-		debug("Rest currenRequestId");
+	if(currentRequestId > 9998){
+		currentRequestId=1;
+		debug("Rest currentRequestId");
 	}
-	debug("getNewRequestId: "+(currenRequestId+1))
-	return currenRequestId++;
+	debug("getNewRequestId: "+(currentRequestId+1))
+	return currentRequestId++;
 }
 
 function closeClientConnection(client, connection) {
