@@ -1,6 +1,6 @@
 const http = require('http');
 const Client = require('castv2').Client;
-var mdns = require('mdns-js');
+const mdns = require('mdns-js');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
@@ -261,6 +261,7 @@ function createWebServer() {
 
 //GOOGLE CAST FUNCTIONS
 function getDevices() {
+	var updateCounter=0;
 	var devices = [];
 	var browser = mdns.createBrowser(mdns.tcp('googlecast'));
 	var exception;
@@ -271,16 +272,24 @@ function getDevices() {
 		});
 
 		browser.on('update', function(service){
-			console.log('update received, service: ' + JSON.stringify(service));
-			var currentDevice = {
-				deviceName: getId(service.txt[0]),
-				deviceFriendlyName: getFriendlyName(service.txt[6]),
-				deviceAddress: service.addresses[0],
-				devicePort: service.port
+			try {
+				updateCounter++;
+				debug('update received, service: ' + JSON.stringify(service));
+				var currentDevice = {
+					deviceName: getId(service.txt[0]),
+					deviceFriendlyName: getFriendlyName(service.txt[6]),
+					deviceAddress: service.addresses[0],
+					devicePort: service.port
+				}
+		  		if (!duplicateDevice(devices, currentDevice)&&service.type[0].name!='googlezone') {
+		  			devices.push(currentDevice);
+		  			debug('Added device: '+ JSON.stringify(currentDevice));
+		  		} else {
+		  			debug('Duplicat or googlezone device: ' + JSON.stringify(currentDevice))
+		  		}
+		  	} catch (e) {
+				console.error('Exception caught while prcessing service: ' + e);
 			}
-	  		debug('getDevices found: %s', currentDevice.toString());
-	  		//TODO: Check for duplicate entry
-	  		devices.push(currentDevice);
 		});
 	} catch (e) {
 		console.error('Exception caught: ' + e);
@@ -292,7 +301,7 @@ function getDevices() {
 			try{browser.stop();} catch (e) {console.error('Exception caught: ' + e); exception=e;}
 			if (!exception) {
 				if (devices.length>0) {
-					debug('devices.length>0');
+					debug('devices.length>0, updateCounter: ' + updateCounter);
 					resolve(JSON.stringify(devices));
 				}
 			}
@@ -670,6 +679,17 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 	});
 }
 
+function duplicateDevice(devices, device) {
+	if (device.deviceName && device.deviceName!=null && devices && devices!=null) {
+		for (var i = 0; i < devices.length; i++) {
+			if(devices[i].deviceName == device.deviceName) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 function getFriendlyName(fn) {
 	if (fn&&fn!=null&&fn.match(/fn=*/)!=null) {
 		debug('Is friendly name: ' + fn);
@@ -681,7 +701,7 @@ function getFriendlyName(fn) {
 
 function getId(id) {
 	if (id&&id!=null&&id.match(/id=*/)!=null) {
-		debug('Is is: ' + id);
+		debug('Is id: ' + id);
 		return (id.replace(/id=*/, ''));
 	} else {
 		debug('Is not id: ' + id);
