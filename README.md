@@ -7,9 +7,9 @@ However my code is **verry badly written and experimental, not intendend for any
 
 ## Installation
 
-First you'll need to install the dependencies of this project, preferably via npm. If you're not running Mac OS X make sure to install [mdns dependencies](https://github.com/vervallsweg/cast-web-api/blob/master/mdns-installation.md "mdns dependencies")
+First you'll need to install the dependencies of this project, preferably via npm.
 
-    $ npm install castv2 castv2-client mdns debug http url minimist
+    $ npm install castv2 castv2-client debug http url minimist mdns-js
 
 Afterwards clone the repo to your prefered destination
 
