@@ -210,35 +210,23 @@ function createWebServer() {
 			}
 		}
 
-		else if (parsedUrl['pathname']=="/setConfig") {
+		else if (parsedUrl['pathname']=="/config") {
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json');
-			if (parsedUrl['query']['networkTimeout']) {
-				networkTimeout = parsedUrl['query']['networkTimeout'];
-				res.end('{"response": "ok", "networkTimeout": '+networkTimeout+'}');
-			} else if (parsedUrl['query']['currentRequestId']) {
-				currentRequestId = parsedUrl['query']['currentRequestId']
-				res.end('{"response": "ok", "currentRequestId": '+currentRequestId+'}');
-			} else if (parsedUrl['query']['appLoadTimeout']) {
-				appLoadTimeout = parsedUrl['query']['appLoadTimeout']
-				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
-		}
+			var configParameter, configOperation;
 
-		else if (parsedUrl['pathname']=="/getConfig") {
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
-			//console.log("parsedUrl.searchParams: "+ parsedUrl.searchParams);
-			
-			if (parsedUrl['query']['networkTimeout']) {
-				res.end('{"networkTimeout": '+networkTimeout+'}');
-			} else if (parsedUrl['query']['currentRequestId']) {
-				res.end('{"currentRequestId": '+currentRequestId+'}');
-			} else if (parsedUrl['query']['appLoadTimeout']) {
-				res.end('{"appLoadTimeout": '+appLoadTimeout+'}');
+			if (parsedUrl['query']['set']) {configParameter=parsedUrl['query']['set']; configOperation='set';}
+			if (parsedUrl['query']['get']) {configParameter=parsedUrl['query']['get']; configOperation='get';}
+
+			if (configParameter==['networkTimeout']) {
+				if (configOperation=='set') {networkTimeout = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "networkTimeout": '+networkTimeout+'}');
+			} else if (configParameter==['currentRequestId']) {
+				if (configOperation=='set') {currentRequestId = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "currentRequestId": '+currentRequestId+'}');
+			} else if (configParameter==['appLoadTimeout']) {
+				if (configOperation=='set') {appLoadTimeout = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
 			} else {
 				res.statusCode = 400;
 				res.end('Parameter error');
