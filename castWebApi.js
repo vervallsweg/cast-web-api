@@ -209,17 +209,28 @@ function createWebServer() {
 			}
 		}
 
-		else if (parsedUrl['pathname']=="/setConfig") {
+		else if (parsedUrl['pathname']=="/config") {
 			res.statusCode = 200;
+<<<<<<< HEAD
 			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['networkTimeout']) {
 				networkTimeout = parsedUrl['query']['networkTimeout'];
+=======
+			res.setHeader('Content-Type', 'application/json');
+			var configParameter, configOperation;
+
+			if (parsedUrl['query']['set']) {configParameter=parsedUrl['query']['set']; configOperation='set';}
+			if (parsedUrl['query']['get']) {configParameter=parsedUrl['query']['get']; configOperation='get';}
+
+			if (configParameter==['networkTimeout']) {
+				if (configOperation=='set') {networkTimeout = parsedUrl['query']['value'];}
+>>>>>>> v0.2
 				res.end('{"response": "ok", "networkTimeout": '+networkTimeout+'}');
-			} else if (parsedUrl['query']['currentRequestId']) {
-				currentRequestId = parsedUrl['query']['currentRequestId']
+			} else if (configParameter==['currentRequestId']) {
+				if (configOperation=='set') {currentRequestId = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "currentRequestId": '+currentRequestId+'}');
-			} else if (parsedUrl['query']['appLoadTimeout']) {
-				appLoadTimeout = parsedUrl['query']['appLoadTimeout']
+			} else if (configParameter==['appLoadTimeout']) {
+				if (configOperation=='set') {appLoadTimeout = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
 			} else {
 				res.statusCode = 400;
@@ -227,6 +238,7 @@ function createWebServer() {
 			}
 		}
 
+<<<<<<< HEAD
 		else if (parsedUrl['pathname']=="/getConfig") {
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -244,6 +256,8 @@ function createWebServer() {
 			}
 		}
 
+=======
+>>>>>>> v0.2
 		else {
 			res.statusCode = 404;
 			res.end('Not found');
