@@ -7,7 +7,8 @@ const args = require('minimist')(process.argv.slice(2));
 var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
-var networkTimeout = 2000; //Maybe to little time?
+var networkTimeout = 2000;
+var discoveryTimeout = 3000;
 var appLoadTimeout = 6000;
 
 interpretArguments();
@@ -220,6 +221,9 @@ function createWebServer() {
 			if (configParameter==['networkTimeout']) {
 				if (configOperation=='set') {networkTimeout = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "networkTimeout": '+networkTimeout+'}');
+			} else if (configParameter==['discoveryTimeout']) {
+				if (configOperation=='set') {discoveryTimeout = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "discoveryTimeout": '+discoveryTimeout+'}');
 			} else if (configParameter==['currentRequestId']) {
 				if (configOperation=='set') {currentRequestId = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "currentRequestId": '+currentRequestId+'}');
@@ -294,7 +298,7 @@ function getDevices() {
 				}
 			}
 			resolve(null);
-	  	}, networkTimeout);
+	  	}, discoveryTimeout);
 	});
 }
 
