@@ -1,7 +1,6 @@
 const http = require('http');
 const Client = require('castv2').Client;
-const mdns = require('mdns');
-mdns.Browser.defaultResolverSequence[1] = 'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]}); //fix for Raspberry Pi's mdns browser https://github.com/agnat/node_mdns/issues/130
+const mdns = require('mdns-js');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
@@ -9,6 +8,7 @@ var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
 var networkTimeout = 2000;
+var discoveryTimeout = 3000;
 var appLoadTimeout = 6000;
 
 interpretArguments();
@@ -40,7 +40,7 @@ function createWebServer() {
 		var parsedUrl = url.parse(req.url, true);
 
 		if (parsedUrl['pathname']=="/getDevices") {
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			getDevices().then(devices => {
 				if (devices) {
 					res.statusCode = 200;
@@ -57,7 +57,7 @@ function createWebServer() {
 				getDeviceStatus(parsedUrl['query']['address']).then(deviceStatus => {
 					if (deviceStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(deviceStatus);
 					} else {
 						res.statusCode = 500;
@@ -72,12 +72,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setDeviceVolume") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['volume']) {
 				setDeviceVolume(parsedUrl['query']['address'], parseFloat(parsedUrl['query']['volume'])).then(deviceStatus => {
 					if (deviceStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(deviceStatus);
 					} else {
 						res.statusCode = 500;
@@ -92,12 +92,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setDeviceMuted") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['muted']) {
 				setDeviceMuted(parsedUrl['query']['address'], (parsedUrl['query']['muted']=="true")).then(deviceStatus => {
 					if (deviceStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(deviceStatus);
 					} else {
 						res.statusCode = 500;
@@ -112,12 +112,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/getMediaStatus") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId']) {
 				getMediaStatus(parsedUrl['query']['address'], parsedUrl['query']['sessionId']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -132,12 +132,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setMediaPlaybackPause") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId'] && parsedUrl['query']['mediaSessionId']) {
 				setMediaPlaybackPause(parsedUrl['query']['address'], parsedUrl['query']['sessionId'], parsedUrl['query']['mediaSessionId']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -152,12 +152,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setMediaPlaybackPlay") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId'] && parsedUrl['query']['mediaSessionId']) {
 				setMediaPlaybackPlay(parsedUrl['query']['address'], parsedUrl['query']['sessionId'], parsedUrl['query']['mediaSessionId']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -172,12 +172,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setDevicePlaybackStop") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId']) {
 				setDevicePlaybackStop(parsedUrl['query']['address'], parsedUrl['query']['sessionId']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -192,12 +192,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setMediaPlayback") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['mediaType'] && parsedUrl['query']['mediaUrl'] && parsedUrl['query']['mediaStreamType'] && parsedUrl['query']['mediaTitle'] && parsedUrl['query']['mediaSubtitle'] && parsedUrl['query']['mediaImageUrl']) {
 				setMediaPlayback(parsedUrl['query']['address'], parsedUrl['query']['mediaType'], parsedUrl['query']['mediaUrl'], parsedUrl['query']['mediaStreamType'], parsedUrl['query']['mediaTitle'], parsedUrl['query']['mediaSubtitle'], parsedUrl['query']['mediaImageUrl']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -212,7 +212,7 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/config") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			var configParameter, configOperation;
 
 			if (parsedUrl['query']['set']) {configParameter=parsedUrl['query']['set']; configOperation='set';}
@@ -221,6 +221,9 @@ function createWebServer() {
 			if (configParameter==['networkTimeout']) {
 				if (configOperation=='set') {networkTimeout = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "networkTimeout": '+networkTimeout+'}');
+			} else if (configParameter==['discoveryTimeout']) {
+				if (configOperation=='set') {discoveryTimeout = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "discoveryTimeout": '+discoveryTimeout+'}');
 			} else if (configParameter==['currentRequestId']) {
 				if (configOperation=='set') {currentRequestId = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "currentRequestId": '+currentRequestId+'}');
@@ -250,23 +253,36 @@ function createWebServer() {
 
 //GOOGLE CAST FUNCTIONS
 function getDevices() {
+	var updateCounter=0;
 	var devices = [];
 	var browser = mdns.createBrowser(mdns.tcp('googlecast'));
 	var exception;
 
 	try {
-		browser.on('serviceUp', function(service) {
-			var currentDevice = {
-				deviceName: service.name,
-				deviceFriendlyName: service.txtRecord.fn,
-				deviceAddress: service.addresses[0],
-				devicePort: service.port
-			}
-	  		debug('getDevices found: %s', currentDevice.toString());
-	  		devices.push(currentDevice);
+		browser.on('ready', function(){
+			browser.discover();
 		});
-		
-		browser.start();
+
+		browser.on('update', function(service){
+			try {
+				updateCounter++;
+				debug('update received, service: ' + JSON.stringify(service));
+				var currentDevice = {
+					deviceName: getId(service.txt[0]),
+					deviceFriendlyName: getFriendlyName(service.txt[6]),
+					deviceAddress: service.addresses[0],
+					devicePort: service.port
+				}
+		  		if (!duplicateDevice(devices, currentDevice)&&service.type[0].name!='googlezone') {
+		  			devices.push(currentDevice);
+		  			debug('Added device: '+ JSON.stringify(currentDevice));
+		  		} else {
+		  			debug('Duplicat or googlezone device: ' + JSON.stringify(currentDevice))
+		  		}
+		  	} catch (e) {
+				console.error('Exception caught while prcessing service: ' + e);
+			}
+		});
 	} catch (e) {
 		console.error('Exception caught: ' + e);
 		exception = e;
@@ -277,12 +293,12 @@ function getDevices() {
 			try{browser.stop();} catch (e) {console.error('Exception caught: ' + e); exception=e;}
 			if (!exception) {
 				if (devices.length>0) {
-					debug('devices.length>0');
+					debug('devices.length>0, updateCounter: ' + updateCounter);
 					resolve(JSON.stringify(devices));
 				}
 			}
 			resolve(null);
-	  	}, networkTimeout);
+	  	}, discoveryTimeout);
 	});
 }
 
@@ -653,6 +669,35 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 	  		resolve(null);
 	  	});
 	});
+}
+
+function duplicateDevice(devices, device) {
+	if (device.deviceName && device.deviceName!=null && devices && devices!=null) {
+		for (var i = 0; i < devices.length; i++) {
+			if(devices[i].deviceName == device.deviceName) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+function getFriendlyName(fn) {
+	if (fn&&fn!=null&&fn.match(/fn=*/)!=null) {
+		debug('Is friendly name: ' + fn);
+		return (fn.replace(/fn=*/, ''));
+	} else {
+		debug('Is not friendly name: ' + fn);
+	}
+}
+
+function getId(id) {
+	if (id&&id!=null&&id.match(/id=*/)!=null) {
+		debug('Is id: ' + id);
+		return (id.replace(/id=*/, ''));
+	} else {
+		debug('Is not id: ' + id);
+	}
 }
 
 function parseAddress(address){
