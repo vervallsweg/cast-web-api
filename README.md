@@ -6,16 +6,13 @@ This simple web API is based on the awesome [node-castv2](https://github.com/thi
 However my code is **verry badly written and experimental, not intendend for any production environment!**
 
 ## Installation
+Make sure you're in the directory you want to install it to.
 
-First you'll need to install the dependencies of this project, preferably via npm.
+    $ npm install cast-web-api
 
-    $ npm install castv2 castv2-client debug http url minimist mdns-js node-fetch
 
-Afterwards clone the repo to your prefered destination
-
-    $ git clone https://github.com/vervallsweg/cast-web-api.git
-
-Now you can simply call the script and the web-api should be up and running!
+## First steps
+You can simply call the script and the web-api should be up and running!
 
     $ node (yourdirectory)/castWebApi.js
 
