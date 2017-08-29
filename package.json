@@ -1,0 +1,32 @@
+{
+	"name" : "cast-web-api",
+	"version" : "0.2.0",
+	"author" : "Tobias Haerke",
+	"engines": {
+	  	"node": ">= 4.1.0"
+	},
+	"main": "castWebApi.js",
+	"dependencies": {
+    	"debug": "^2.1.1",
+    	"http": "*",
+    	"castv2": "*",
+    	"mdns-js": "*",
+    	"url": "*",
+    	"minimist": "*",
+    	"node-fetch": "*"
+  	},
+	"repository": {
+	 	"type": "git",
+	 	"url": "git://github.com/vervallsweg/cast-web-api.git"
+	},
+	"description": "Quick and dirty web API for Google Cast enabled devices.",
+	"keywords" : [
+		"chromecast",
+		"google-cast",
+		"cast",
+		"api"
+	],
+	"homepage" : "https://github.com/vervallsweg/cast-web-api",
+	"bugs" : "https://github.com/vervallsweg/cast-web-api/issues",
+	"license" : "GPL-3.0"
+}

@@ -1,15 +1,17 @@
 const http = require('http');
 const Client = require('castv2').Client;
-const mdns = require('mdns');
-mdns.Browser.defaultResolverSequence[1] = 'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]}); //fix for Raspberry Pi's mdns browser https://github.com/agnat/node_mdns/issues/130
+const mdns = require('mdns-js');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
+const fetch = require('node-fetch');
 var hostname = '127.0.0.1';
 var port = 3000;
-var currenRequestId = 1;
+var currentRequestId = 1;
 var networkTimeout = 2000;
+var discoveryTimeout = 4000;
 var appLoadTimeout = 6000;
+var thisVersion = 0.2;
 
 interpretArguments();
 createWebServer();
@@ -26,11 +28,14 @@ function interpretArguments() {
 	if (args.networkTimeout) {
 		networkTimeout = args.networkTimeout;
 	}
+	if (args.discoveryTimeout) {
+		discoveryTimeout = args.discoveryTimeout;
+	}
 	if (args.appLoadTimeout) {
 		appLoadTimeout = args.appLoadTimeout;
 	}
-	if (args.currenRequestId) {
-		currenRequestId = args.currenRequestId;
+	if (args.currentRequestId) {
+		currentRequestId = args.currentRequestId;
 	}
 }
 
@@ -40,7 +45,7 @@ function createWebServer() {
 		var parsedUrl = url.parse(req.url, true);
 
 		if (parsedUrl['pathname']=="/getDevices") {
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			getDevices().then(devices => {
 				if (devices) {
 					res.statusCode = 200;
@@ -57,7 +62,7 @@ function createWebServer() {
 				getDeviceStatus(parsedUrl['query']['address']).then(deviceStatus => {
 					if (deviceStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(deviceStatus);
 					} else {
 						res.statusCode = 500;
@@ -72,12 +77,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setDeviceVolume") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['volume']) {
 				setDeviceVolume(parsedUrl['query']['address'], parseFloat(parsedUrl['query']['volume'])).then(deviceStatus => {
 					if (deviceStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(deviceStatus);
 					} else {
 						res.statusCode = 500;
@@ -92,12 +97,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setDeviceMuted") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['muted']) {
 				setDeviceMuted(parsedUrl['query']['address'], (parsedUrl['query']['muted']=="true")).then(deviceStatus => {
 					if (deviceStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(deviceStatus);
 					} else {
 						res.statusCode = 500;
@@ -112,12 +117,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/getMediaStatus") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId']) {
 				getMediaStatus(parsedUrl['query']['address'], parsedUrl['query']['sessionId']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -132,12 +137,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setMediaPlaybackPause") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId'] && parsedUrl['query']['mediaSessionId']) {
 				setMediaPlaybackPause(parsedUrl['query']['address'], parsedUrl['query']['sessionId'], parsedUrl['query']['mediaSessionId']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -152,12 +157,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setMediaPlaybackPlay") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId'] && parsedUrl['query']['mediaSessionId']) {
 				setMediaPlaybackPlay(parsedUrl['query']['address'], parsedUrl['query']['sessionId'], parsedUrl['query']['mediaSessionId']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -172,12 +177,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setDevicePlaybackStop") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId']) {
 				setDevicePlaybackStop(parsedUrl['query']['address'], parsedUrl['query']['sessionId']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -192,12 +197,12 @@ function createWebServer() {
 
 		else if (parsedUrl['pathname']=="/setMediaPlayback") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['mediaType'] && parsedUrl['query']['mediaUrl'] && parsedUrl['query']['mediaStreamType'] && parsedUrl['query']['mediaTitle'] && parsedUrl['query']['mediaSubtitle'] && parsedUrl['query']['mediaImageUrl']) {
 				setMediaPlayback(parsedUrl['query']['address'], parsedUrl['query']['mediaType'], parsedUrl['query']['mediaUrl'], parsedUrl['query']['mediaStreamType'], parsedUrl['query']['mediaTitle'], parsedUrl['query']['mediaSubtitle'], parsedUrl['query']['mediaImageUrl']).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json');
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
 						res.end(mediaStatus);
 					} else {
 						res.statusCode = 500;
@@ -210,22 +215,47 @@ function createWebServer() {
 			}
 		}
 
-		else if (parsedUrl['pathname']=="/setConfig") {
+		else if (parsedUrl['pathname']=="/config") {
 			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json');
-			if (parsedUrl['query']['networkTimeout']) {
-				networkTimeout = parsedUrl['query']['networkTimeout'];
-				res.end('OK: networkTimeout set to: '+parsedUrl['query']['networkTimeout']);
-			} else if (parsedUrl['query']['currenRequestId']) {
-				currenRequestId = parsedUrl['query']['currenRequestId']
-				res.end('OK: currenRequestId set to: '+parsedUrl['query']['currenRequestId']);
-			} else if (parsedUrl['query']['appLoadTimeout']) {
-				currenRequestId = parsedUrl['query']['appLoadTimeout']
-				res.end('OK: appLoadTimeout set to: '+parsedUrl['query']['appLoadTimeout']);
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
+			var configParameter, configOperation;
+
+			if (parsedUrl['query']['set']) {configParameter=parsedUrl['query']['set']; configOperation='set';}
+			if (parsedUrl['query']['get']) {configParameter=parsedUrl['query']['get']; configOperation='get';}
+
+			if (configParameter==['networkTimeout']) {
+				if (configOperation=='set') {networkTimeout = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "networkTimeout": '+networkTimeout+'}');
+			} else if (configParameter==['discoveryTimeout']) {
+				if (configOperation=='set') {discoveryTimeout = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "discoveryTimeout": '+discoveryTimeout+'}');
+			} else if (configParameter==['currentRequestId']) {
+				if (configOperation=='set') {currentRequestId = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "currentRequestId": '+currentRequestId+'}');
+			} else if (configParameter==['appLoadTimeout']) {
+				if (configOperation=='set') {appLoadTimeout = parsedUrl['query']['value'];}
+				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
+			} else if (configParameter==['version']) {
+				res.end('{"response": "ok", "version": '+thisVersion+'}');
+			} else if (configParameter==['latestVersion']) {
+				getLatestVersion().then(latestVersion => {
+					if (latestVersion!=null) {
+						res.end('{"response": "ok", "latestVersion": '+ latestVersion +'}');
+					} else {
+						res.statusCode = 500;
+						res.end();
+					}
+				});
+				
 			} else {
 				res.statusCode = 400;
 				res.end('Parameter error');
 			}
+		}
+
+		else if (parsedUrl['pathname']=="/") {
+			res.statusCode = 200;
+			res.end('cast-web-api version ' + thisVersion)
 		}
 
 		else {
@@ -245,23 +275,36 @@ function createWebServer() {
 
 //GOOGLE CAST FUNCTIONS
 function getDevices() {
+	var updateCounter=0;
 	var devices = [];
 	var browser = mdns.createBrowser(mdns.tcp('googlecast'));
 	var exception;
 
 	try {
-		browser.on('serviceUp', function(service) {
-			var currentDevice = {
-				deviceName: service.name,
-				deviceFriendlyName: service.txtRecord.fn,
-				deviceAddress: service.addresses[0],
-				devicePort: service.port
-			}
-	  		debug('getDevices found: %s', currentDevice.toString());
-	  		devices.push(currentDevice);
+		browser.on('ready', function(){
+			browser.discover();
 		});
-		
-		browser.start();
+
+		browser.on('update', function(service){
+			try {
+				updateCounter++;
+				debug('update received, service: ' + JSON.stringify(service));
+				var currentDevice = {
+					deviceName: getId(service.txt[0]),
+					deviceFriendlyName: getFriendlyName(service.txt[6]),
+					deviceAddress: service.addresses[0],
+					devicePort: service.port
+				}
+		  		if (!duplicateDevice(devices, currentDevice)&&service.type[0].name!='googlezone') {
+		  			devices.push(currentDevice);
+		  			debug('Added device: '+ JSON.stringify(currentDevice));
+		  		} else {
+		  			debug('Duplicat or googlezone device: ' + JSON.stringify(currentDevice))
+		  		}
+		  	} catch (e) {
+				console.error('Exception caught while prcessing service: ' + e);
+			}
+		});
 	} catch (e) {
 		console.error('Exception caught: ' + e);
 		exception = e;
@@ -272,12 +315,12 @@ function getDevices() {
 			try{browser.stop();} catch (e) {console.error('Exception caught: ' + e); exception=e;}
 			if (!exception) {
 				if (devices.length>0) {
-					debug('devices.length>0');
+					debug('devices.length>0, updateCounter: ' + updateCounter);
 					resolve(JSON.stringify(devices));
 				}
 			}
 			resolve(null);
-	  	}, networkTimeout);
+	  	}, discoveryTimeout);
 	});
 }
 
@@ -650,6 +693,35 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 	});
 }
 
+function duplicateDevice(devices, device) {
+	if (device.deviceName && device.deviceName!=null && devices && devices!=null) {
+		for (var i = 0; i < devices.length; i++) {
+			if(devices[i].deviceName == device.deviceName) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+function getFriendlyName(fn) {
+	if (fn&&fn!=null&&fn.match(/fn=*/)!=null) {
+		debug('Is friendly name: ' + fn);
+		return (fn.replace(/fn=*/, ''));
+	} else {
+		debug('Is not friendly name: ' + fn);
+	}
+}
+
+function getId(id) {
+	if (id&&id!=null&&id.match(/id=*/)!=null) {
+		debug('Is id: ' + id);
+		return (id.replace(/id=*/, ''));
+	} else {
+		debug('Is not id: ' + id);
+	}
+}
+
 function parseAddress(address){
 	ip=address.split(':')[0];
 	port=address.split(':')[1];
@@ -667,12 +739,42 @@ function parseAddress(address){
 }
 
 function getNewRequestId(){
-	if(currenRequestId > 9998){
-		currenRequestId=1;
-		debug("Rest currenRequestId");
+	if(currentRequestId > 9998){
+		currentRequestId=1;
+		debug("Rest currentRequestId");
 	}
-	debug("getNewRequestId: "+(currenRequestId+1))
-	return currenRequestId++;
+	debug("getNewRequestId: "+(currentRequestId+1))
+	return currentRequestId++;
+}
+
+function getLatestVersion() {
+	return new Promise(resolve => {
+		fetch('https://raw.githubusercontent.com/vervallsweg/cast-web-api/master/package.json')
+			.then(function(res) {
+				return res.json();
+			}).then(function(json) {
+				debug('getLatestVersion, json received: '+JSON.stringify(json));
+				resolve( getParsedPackageJson(json) );
+			});
+
+		setTimeout(() => {
+			resolve(null);
+		}, networkTimeout);
+	});
+	
+
+	return 0.2;
+}
+
+function getParsedPackageJson(json) {
+	var version;
+	try {
+		debug('getParsedPackageJson, version: ' + json.version);
+		return json.version;
+	} catch (e) {
+		console.log('parsePackageJson, exception caught: ' + e);
+	}
+	return version;
 }
 
 function closeClientConnection(client, connection) {
