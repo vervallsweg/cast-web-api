@@ -162,7 +162,7 @@ The server will return an HTTP status code so you can quickly determin if the re
 - 500: Comunication with Cast device failed, enable debuging to check for possible errors
 
 ## Server settings
-Basic settings can be set and read using the config request url or the corresponding command line argument. Server hostname and port can only be set from the command line (see: [Installation](https://github.com/vervallsweg/cast-web-api/#installation "Installation")). The requestUrl only supports setting one parameter at a time, multiple parameters will be ignored.
+Basic settings can be set and read using the config request url or the corresponding command line argument. Server hostname and port can only be set from the command line (see: [First steps](https://github.com/vervallsweg/cast-web-api/#first-steps "First steps")). The requestUrl only supports setting one parameter at a time, multiple parameters will be ignored.
 
 ### Usage
 ```
