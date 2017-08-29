@@ -1,7 +1,7 @@
 {
 	"name" : "cast-web-api",
 	"version" : "0.2",
-	"author" : "Tobias Härke",
+	"author" : "Tobias Haerke",
 	"engines": {
 	  	"node": ">= 4.1.0"
 	},
@@ -10,9 +10,10 @@
     	"debug": "^2.1.1",
     	"http": "*",
     	"castv2": "*",
-    	"mdns": "*",
+    	"mdns-js": "*",
     	"url": "*",
-    	"minimist": "*"
+    	"minimist": "*",
+    	"node-fetch": "*"
   	},
 	"repository": {
 	 	"type": "git",
