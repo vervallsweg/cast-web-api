@@ -4,12 +4,14 @@ const mdns = require('mdns-js');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
+const fetch = require('node-fetch');
 var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
 var networkTimeout = 2000;
 var discoveryTimeout = 3000;
 var appLoadTimeout = 6000;
+var thisVersion = 0.2;
 
 interpretArguments();
 createWebServer();
@@ -230,6 +232,18 @@ function createWebServer() {
 			} else if (configParameter==['appLoadTimeout']) {
 				if (configOperation=='set') {appLoadTimeout = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
+			} else if (configParameter==['version']) {
+				res.end('{"response": "ok", "version": '+thisVersion+'}');
+			} else if (configParameter==['latestVersion']) {
+				getLatestVersion().then(latestVersion => {
+					if (latestVersion!=null) {
+						res.end('{"response": "ok", "latestVersion": '+ latestVersion +'}');
+					} else {
+						res.statusCode = 500;
+						res.end();
+					}
+				});
+				
 			} else {
 				res.statusCode = 400;
 				res.end('Parameter error');
@@ -723,6 +737,36 @@ function getNewRequestId(){
 	}
 	debug("getNewRequestId: "+(currentRequestId+1))
 	return currentRequestId++;
+}
+
+function getLatestVersion() {
+	return new Promise(resolve => {
+		fetch('https://raw.githubusercontent.com/vervallsweg/cast-web-api/master/package.json')
+			.then(function(res) {
+				return res.json();
+			}).then(function(json) {
+				debug('getLatestVersion, json received: '+JSON.stringify(json));
+				resolve( getParsedPackageJson(json) );
+			});
+
+		setTimeout(() => {
+			resolve(null);
+		}, networkTimeout);
+	});
+	
+
+	return 0.2;
+}
+
+function getParsedPackageJson(json) {
+	var version;
+	try {
+		debug('getParsedPackageJson, version: ' + json.version);
+		return json.version;
+	} catch (e) {
+		console.log('parsePackageJson, exception caught: ' + e);
+	}
+	return version;
 }
 
 function closeClientConnection(client, connection) {
