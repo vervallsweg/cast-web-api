@@ -66,7 +66,7 @@ Returns a JSON Array of devices found on the network. Recent changes make instal
 ]
 ```
 
-	http://{host}/getDevices
+    http://{host}/getDevices
 
 
 #### getDeviceStatus (address)
@@ -75,7 +75,7 @@ Returns a JSON Array of devices found on the network. Recent changes make instal
 which is JSON encoded and part of the Google Cast protocol.
 - address: IP adress:port of the Google Cast device, if no port is provided 8009 is assumed
 
-	http://{host}/getDeviceStatus?address={address}
+    http://{host}/getDeviceStatus?address={address}
 
 
 #### setDeviceVolume (address) (volume) 
@@ -85,7 +85,7 @@ and sets the device volume. The return value reflects the state of the device af
 - address: IP adress of the Google Cast device
 - volume: Float value from 0-1 (0.1=10%, 0.2=20%, ...)
 
-	http://{host}/setDeviceVolume?address={address}&volume={volume}
+    http://{host}/setDeviceVolume?address={address}&volume={volume}
 
 
 #### setDeviceMuted (address) (muted)
@@ -95,7 +95,7 @@ and mutes or unmutes the device.
 - address: IP adress of the Google Cast device
 - muted: true / false
 
-	http://{host}/setDeviceMuted?address={address}&muted={muted}
+    http://{host}/setDeviceMuted?address={address}&muted={muted}
 
 
 #### getMediaStatus (address) (sessionId)
@@ -106,7 +106,7 @@ Can **only** be executed if something is loaded or playing on the device (sessio
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 
-	http://{host}/getMediaStatus?address={address}&sessionId={sessionId}
+    http://{host}/getMediaStatus?address={address}&sessionId={sessionId}
 
 
 #### setMediaPlaybackPause (address) (sessionId) (mediaSessionId)
@@ -117,7 +117,7 @@ and pauses currently playing media. mediaSessionId is included in getMediaStatus
 - sessionId: sessionId of the current active session
 - mediaSessionId: int
 
-	http://{host}/setMediaPlaybackPause?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
+    http://{host}/setMediaPlaybackPause?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
 
 
 #### setMediaPlaybackPlay (address) (sessionId) (mediaSessionId)
@@ -128,7 +128,7 @@ and plays currently loaded media.
 - sessionId: sessionId of the current active session
 - mediaSessionId: int
 
-	http://{host}/setMediaPlaybackPlay?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
+    http://{host}/setMediaPlaybackPlay?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
 
 
 #### setDevicePlaybackStop (address) (sessionId)
@@ -138,7 +138,7 @@ and stops casting to the device, kills currently running session.
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 
-	http://{host}/setDevicePlaybackStop?address={address}&sessionId={sessionId}
+    http://{host}/setDevicePlaybackStop?address={address}&sessionId={sessionId}
 
 
 #### setMediaPlayback (address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl)
@@ -151,7 +151,7 @@ after playback of your custom media has started. For this it uses Google's [defa
 - mediaStreamType: Kind of stream - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
 - mediaTitle (->title), mediaSubtitle(->subtitle), mediaImageUrl(->images[0]): see [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
 
-	http://{host}/setMediaPlayback?address={address}&mediaType={mediaType}&mediaUrl={mediaUrl}&mediaStreamType={mediaStreamType}&mediaTitle={mediaTitle}&mediaSubtitle={mediaSubtitle}&mediaImageUrl={mediaImageUrl}
+    http://{host}/setMediaPlayback?address={address}&mediaType={mediaType}&mediaUrl={mediaUrl}&mediaStreamType={mediaStreamType}&mediaTitle={mediaTitle}&mediaSubtitle={mediaSubtitle}&mediaImageUrl={mediaImageUrl}
 
 
 #### config
@@ -169,14 +169,14 @@ Basic settings can be set and read using the config request url or the correspon
 
 ### Usage
 
-	http://{hostname}/comfig?get={parameter}
+    http://{hostname}/comfig?get={parameter}
 
 
-	http://{hostname}/comfig?set={parameter}&value={value}
+    http://{hostname}/comfig?set={parameter}&value={value}
 
 Every successful get/set options returns a simple JSON with response: ok and the parameter value.
 
-	{"response": "ok", "networkTimeout": 2000}
+    {"response": "ok", "networkTimeout": 2000}
 
 
 ### Modes
