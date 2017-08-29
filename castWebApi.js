@@ -9,7 +9,7 @@ var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
 var networkTimeout = 2000;
-var discoveryTimeout = 3000;
+var discoveryTimeout = 4000;
 var appLoadTimeout = 6000;
 var thisVersion = 0.2;
 
@@ -27,6 +27,9 @@ function interpretArguments() {
 	}
 	if (args.networkTimeout) {
 		networkTimeout = args.networkTimeout;
+	}
+	if (args.discoveryTimeout) {
+		discoveryTimeout = args.discoveryTimeout;
 	}
 	if (args.appLoadTimeout) {
 		appLoadTimeout = args.appLoadTimeout;
