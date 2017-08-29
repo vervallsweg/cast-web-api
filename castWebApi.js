@@ -250,6 +250,11 @@ function createWebServer() {
 			}
 		}
 
+		else if (parsedUrl['pathname']=="/") {
+			res.statusCode = 200;
+			res.end('cast-web-api version ' + thisVersion)
+		}
+
 		else {
 			res.statusCode = 404;
 			res.end('Not found');
