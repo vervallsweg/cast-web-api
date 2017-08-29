@@ -85,6 +85,7 @@ and sets the device volume. The return value reflects the state of the device af
 - address: IP adress of the Google Cast device
 - volume: Float value from 0-1 (0.1=10%, 0.2=20%, ...)
 
+
     http://{host}/setDeviceVolume?address={address}&volume={volume}
 
 
@@ -94,6 +95,7 @@ and sets the device volume. The return value reflects the state of the device af
 and mutes or unmutes the device.
 - address: IP adress of the Google Cast device
 - muted: true / false
+
 
     http://{host}/setDeviceMuted?address={address}&muted={muted}
 
@@ -106,6 +108,7 @@ Can **only** be executed if something is loaded or playing on the device (sessio
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 
+
     http://{host}/getMediaStatus?address={address}&sessionId={sessionId}
 
 
@@ -116,6 +119,7 @@ and pauses currently playing media. mediaSessionId is included in getMediaStatus
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 - mediaSessionId: int
+
 
     http://{host}/setMediaPlaybackPause?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
 
@@ -128,6 +132,7 @@ and plays currently loaded media.
 - sessionId: sessionId of the current active session
 - mediaSessionId: int
 
+
     http://{host}/setMediaPlaybackPlay?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
 
 
@@ -137,6 +142,7 @@ and plays currently loaded media.
 and stops casting to the device, kills currently running session. 
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
+
 
     http://{host}/setDevicePlaybackStop?address={address}&sessionId={sessionId}
 
@@ -150,6 +156,7 @@ after playback of your custom media has started. For this it uses Google's [defa
 - mediaUrl: HTTP(S) url to your content
 - mediaStreamType: Kind of stream - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
 - mediaTitle (->title), mediaSubtitle(->subtitle), mediaImageUrl(->images[0]): see [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
+
 
     http://{host}/setMediaPlayback?address={address}&mediaType={mediaType}&mediaUrl={mediaUrl}&mediaStreamType={mediaStreamType}&mediaTitle={mediaTitle}&mediaSubtitle={mediaSubtitle}&mediaImageUrl={mediaImageUrl}
 
