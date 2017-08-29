@@ -9,7 +9,7 @@ However my code is **verry badly written and experimental, not intendend for any
 
 First you'll need to install the dependencies of this project, preferably via npm.
 
-    $ npm install castv2 castv2-client debug http url minimist mdns-js
+    $ npm install castv2 castv2-client debug http url minimist mdns-js node-fetch
 
 Afterwards clone the repo to your prefered destination
 
@@ -34,6 +34,9 @@ Running the script and setting the parameters is mostly unchanged:
 
 ## Usage
 
+### Protocol
+Everything is HTTP GET. All parameters are part of the URL, no need for POST, etc.
+
 ### Request URLs
 
 Request URLs are formated like this:
@@ -47,7 +50,7 @@ Example URL for setting the volume to 50%:
 None of the parameters has to be put in '' or anything like that. Just paste it in.
 
 #### getDevices
-Returns a JSON Array of devices found on the network
+Returns a JSON Array of devices found on the network. Recent changes make installation easier but *device discovery [unreliable](https://github.com/vervallsweg/cast-web-api/issues/35 "unreliable") sometimes*.
 ``` 
 [
 	[
@@ -63,11 +66,17 @@ Returns a JSON Array of devices found on the network
 ]
 ```
 
+	http://{host}/getDevices
+
+
 #### getDeviceStatus (address)
 **Returns DEVICE_STATUS,**
 
 which is JSON encoded and part of the Google Cast protocol.
 - address: IP adress:port of the Google Cast device, if no port is provided 8009 is assumed
+
+	http://{host}/getDeviceStatus?address={address}
+
 
 #### setDeviceVolume (address) (volume) 
 **Returns DEVICE_STATUS,**
@@ -76,12 +85,18 @@ and sets the device volume. The return value reflects the state of the device af
 - address: IP adress of the Google Cast device
 - volume: Float value from 0-1 (0.1=10%, 0.2=20%, ...)
 
+	http://{host}/setDeviceVolume?address={address}&volume={volume}
+
+
 #### setDeviceMuted (address) (muted)
 **Returns DEVICE_STATUS,**
 
 and mutes or unmutes the device.
 - address: IP adress of the Google Cast device
 - muted: true / false
+
+	http://{host}/setDeviceMuted?address={address}&muted={muted}
+
 
 #### getMediaStatus (address) (sessionId)
 **Returns MEDIA_STATUS,**
@@ -91,6 +106,9 @@ Can **only** be executed if something is loaded or playing on the device (sessio
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 
+	http://{host}/getMediaStatus?address={address}&sessionId={sessionId}
+
+
 #### setMediaPlaybackPause (address) (sessionId) (mediaSessionId)
 **Returns MEDIA_STATUS,**
 
@@ -98,6 +116,9 @@ and pauses currently playing media. mediaSessionId is included in getMediaStatus
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
 - mediaSessionId: int
+
+	http://{host}/setMediaPlaybackPause?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
+
 
 #### setMediaPlaybackPlay (address) (sessionId) (mediaSessionId)
 **Returns MEDIA_STATUS,**
@@ -107,12 +128,18 @@ and plays currently loaded media.
 - sessionId: sessionId of the current active session
 - mediaSessionId: int
 
+	http://{host}/setMediaPlaybackPlay?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
+
+
 #### setDevicePlaybackStop (address) (sessionId)
 **Returns DEVICE_STATUS, *not* MEDIA_STATUS,**
 
 and stops casting to the device, kills currently running session. 
 - address: IP adress of the Google Cast device
 - sessionId: sessionId of the current active session
+
+	http://{host}/setDevicePlaybackStop?address={address}&sessionId={sessionId}
+
 
 #### setMediaPlayback (address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl)
 **Returns MEDIA_STATUS,**
@@ -124,7 +151,10 @@ after playback of your custom media has started. For this it uses Google's [defa
 - mediaStreamType: Kind of stream - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
 - mediaTitle (->title), mediaSubtitle(->subtitle), mediaImageUrl(->images[0]): see [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
 
-#### setConfig
+	http://{host}/setMediaPlayback?address={address}&mediaType={mediaType}&mediaUrl={mediaUrl}&mediaStreamType={mediaStreamType}&mediaTitle={mediaTitle}&mediaSubtitle={mediaSubtitle}&mediaImageUrl={mediaImageUrl}
+
+
+#### config
 See [server settings](https://github.com/vervallsweg/cast-web-api/#server-settings "server settings")
 
 ### HTTP response codes
@@ -135,23 +165,32 @@ The server will return an HTTP status code so you can quickly determin if the re
 - 500: Comunication with Cast device failed, enable debuging to check for possible errors
 
 ## Server settings
-Basic settings can be set using the setConfig request url or the corresponding command line argument. Server hostname and port can only be set from the command line (see: [Installation](https://github.com/vervallsweg/cast-web-api/#installation "Installation")). The requestUrl only supports setting one parameter at a time, multiple parameters will be ignored.
+Basic settings can be set and read using the config request url or the corresponding command line argument. Server hostname and port can only be set from the command line (see: [Installation](https://github.com/vervallsweg/cast-web-api/#installation "Installation")). The requestUrl only supports setting one parameter at a time, multiple parameters will be ignored.
+
+### Usage
+
+	http://{hostname}/comfig?get={parameter}
+
+
+	http://{hostname}/comfig?set={parameter}&value={value}
+
+Every successful get/set options returns a simple JSON with response: ok and the parameter value.
+
+	{"response": "ok", "networkTimeout": 2000}
+
+
+### Modes
+Get, returns the parameter's value. Set, sets it to the specified value and returns the updated value.
 
 ### Parameters
 #### networkTimeout (ms) [2000]
-**Returns OK: networkTimeout set to: ms**,
-
-this sets the time for the server to wait for an answer from the cast device. By default it is set to 2000ms (2s). If a response is received by the API earlier than the timeout, it will be returned immediately.
+Sets the time for the server to wait for an answer from the cast device. By default it is set to 2000ms (2s). If a response is received by the API earlier than the timeout, it will be returned immediately.
 
 #### appLoadTimeout (ms) [5000]
-**Returns OK: appLoadTimeout set to: ms**,
-
-time for the server to wait untill your custom media is `PLAYING`. Depends on media type, size, network and device performance.
+Time for the server to wait untill your custom media is `PLAYING`. Depends on media type, size, network and device performance. **Especially groups can take longer than 5s to start playback**, adjust timeout accordingly.
 
 #### currenRequestId (ms) [1]
-**Returns OK: currenRequestId set to: ms**,
-
-the Cast protocoll requires a requestId for each request made. The API creates a unique requestId for each request by incrementing an initial value, currentRequestId.
+The Cast protocoll requires a requestId for each request made to a device. The API creates a unique requestId for each request by incrementing the initial value: currentRequestId.
 
 ## Debugging
 cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
