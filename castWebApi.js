@@ -11,7 +11,7 @@ var currentRequestId = 1;
 var networkTimeout = 2000;
 var discoveryTimeout = 4000;
 var appLoadTimeout = 6000;
-var thisVersion = 0.2;
+var thisVersion = '0.2.1';
 
 interpretArguments();
 createWebServer();
