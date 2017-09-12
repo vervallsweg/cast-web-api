@@ -13,6 +13,7 @@
     	"debug": "^2.1.1",
     	"http": "*",
     	"castv2": "*",
+    	"castv2-client": "*",
     	"mdns-js": "*",
     	"url": "*",
     	"minimist": "*",
