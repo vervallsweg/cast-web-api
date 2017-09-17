@@ -193,6 +193,12 @@ Time for the server to wait untill your custom media is `PLAYING`. Depends on me
 #### currenRequestId (ms) [1]
 The Cast protocoll requires a requestId for each request made to a device. The API creates a unique requestId for each request by incrementing the initial value: currentRequestId.
 
+#### version (string, get only)
+Returns the version number of the current installation.
+
+#### latestVersion (string, get only)
+The latest version available from GitHub master.
+
 ## Debugging
 cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
 
