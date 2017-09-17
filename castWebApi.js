@@ -238,11 +238,11 @@ function createWebServer() {
 				if (configOperation=='set') {appLoadTimeout = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
 			} else if (configParameter==['version']) {
-				res.end('{"response": "ok", "version": '+thisVersion+'}');
+				res.end('{"response": "ok", "version": "'+thisVersion+'"}');
 			} else if (configParameter==['latestVersion']) {
 				getLatestVersion().then(latestVersion => {
 					if (latestVersion!=null) {
-						res.end('{"response": "ok", "latestVersion": '+ latestVersion +'}');
+						res.end('{"response": "ok", "latestVersion": "'+ latestVersion +'"}');
 					} else {
 						res.statusCode = 500;
 						res.end();
@@ -761,9 +761,6 @@ function getLatestVersion() {
 			resolve(null);
 		}, networkTimeout);
 	});
-	
-
-	return 0.2;
 }
 
 function getParsedPackageJson(json) {
