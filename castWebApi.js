@@ -1,5 +1,7 @@
 const http = require('http');
 const Client = require('castv2').Client;
+const castv2Client = require('castv2-client').Client;
+const DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 const mdns = require('mdns-js');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
@@ -633,12 +635,10 @@ function setDevicePlaybackStop(address, sId) {
 
 function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl) {
 	return new Promise(resolve => {
-		var Client = require('castv2-client').Client;
-		var DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
-		var client = new Client();
+		var castv2Client = new Client();
 
-	  	client.connect(parseAddress(address), function() {
-			client.launch(DefaultMediaReceiver, function(err, player) {
+	  	castv2Client.connect(parseAddress(address), function() {
+			castv2Client.launch(DefaultMediaReceiver, function(err, player) {
 		 		var media = {
 					contentId: mediaUrl,
 			        contentType: mediaType,
@@ -679,15 +679,15 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 			   	});
 			
 			    setTimeout(() => {
-			    	closeClient(client);
+			    	closeClient(castv2Client);
 			    	resolve(null);
 			  	}, appLoadTimeout);
 		    });
 	 	});
 
-	  	client.on('error', function(err) {
+	  	castv2Client.on('error', function(err) {
 	  		handleException(err);
-	  		try{client.close();}catch(e){handleException(e);}
+	  		try{castv2Client.close();}catch(e){handleException(e);}
 	  		resolve(null);
 	  	});
 	});
