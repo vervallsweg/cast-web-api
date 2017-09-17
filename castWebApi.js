@@ -1,5 +1,7 @@
 const http = require('http');
 const Client = require('castv2').Client;
+const castv2Client = require('castv2-client').Client;
+const DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 const mdns = require('mdns-js');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
@@ -11,7 +13,7 @@ var currentRequestId = 1;
 var networkTimeout = 2000;
 var discoveryTimeout = 4000;
 var appLoadTimeout = 6000;
-var thisVersion = 0.2;
+var thisVersion = '0.2.1';
 
 interpretArguments();
 createWebServer();
@@ -236,11 +238,11 @@ function createWebServer() {
 				if (configOperation=='set') {appLoadTimeout = parsedUrl['query']['value'];}
 				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
 			} else if (configParameter==['version']) {
-				res.end('{"response": "ok", "version": '+thisVersion+'}');
+				res.end('{"response": "ok", "version": "'+thisVersion+'"}');
 			} else if (configParameter==['latestVersion']) {
 				getLatestVersion().then(latestVersion => {
 					if (latestVersion!=null) {
-						res.end('{"response": "ok", "latestVersion": '+ latestVersion +'}');
+						res.end('{"response": "ok", "latestVersion": "'+ latestVersion +'"}');
 					} else {
 						res.statusCode = 500;
 						res.end();
@@ -633,12 +635,10 @@ function setDevicePlaybackStop(address, sId) {
 
 function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl) {
 	return new Promise(resolve => {
-		var Client = require('castv2-client').Client;
-		var DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
-		var client = new Client();
+		var castv2Client = new Client();
 
-	  	client.connect(parseAddress(address), function() {
-			client.launch(DefaultMediaReceiver, function(err, player) {
+	  	castv2Client.connect(parseAddress(address), function() {
+			castv2Client.launch(DefaultMediaReceiver, function(err, player) {
 		 		var media = {
 					contentId: mediaUrl,
 			        contentType: mediaType,
@@ -679,15 +679,15 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 			   	});
 			
 			    setTimeout(() => {
-			    	closeClient(client);
+			    	closeClient(castv2Client);
 			    	resolve(null);
 			  	}, appLoadTimeout);
 		    });
 	 	});
 
-	  	client.on('error', function(err) {
+	  	castv2Client.on('error', function(err) {
 	  		handleException(err);
-	  		try{client.close();}catch(e){handleException(e);}
+	  		try{castv2Client.close();}catch(e){handleException(e);}
 	  		resolve(null);
 	  	});
 	});
@@ -761,9 +761,6 @@ function getLatestVersion() {
 			resolve(null);
 		}, networkTimeout);
 	});
-	
-
-	return 0.2;
 }
 
 function getParsedPackageJson(json) {
