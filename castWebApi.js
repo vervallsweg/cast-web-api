@@ -1,6 +1,6 @@
 const http = require('http');
 const Client = require('castv2').Client;
-const castv2Client = require('castv2-client').Client;
+const Castv2Client = require('castv2-client').Client;
 const DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 const mdns = require('mdns-js');
 const url = require('url');
@@ -635,7 +635,7 @@ function setDevicePlaybackStop(address, sId) {
 
 function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl) {
 	return new Promise(resolve => {
-		var castv2Client = new Client();
+		var castv2Client = new Castv2Client();
 
 	  	castv2Client.connect(parseAddress(address), function() {
 			castv2Client.launch(DefaultMediaReceiver, function(err, player) {
