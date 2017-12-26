@@ -19,7 +19,7 @@ You can simply call the script and the web-api should be up and running!
 
     $ node (yourdirectory)/castWebApi.js
 
-By default the server runs on localhost:3000. They can be adjusted with the --hostname --port arguments:
+The server runs on your network ip and 3000. If it cannot determine your ip it defaults to 127.0.0.1. Both parameters can be adjusted with the --hostname --port arguments:
 
 	$ node (yourdirectory)/castWebApi.js --hostname=192.168.0.11 --port=8080
 

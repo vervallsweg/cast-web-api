@@ -7,6 +7,8 @@ const url = require('url');
 const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
 const fetch = require('node-fetch');
+const os = require('os');
+
 var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
@@ -21,6 +23,9 @@ createWebServer();
 //HANDLE ARGUMENTS
 function interpretArguments() {
 	debug('Args: %s', JSON.stringify(args));
+	if (getNetworkIp()) {
+		hostname = getNetworkIp();
+	}
 	if (args.hostname) {
 		hostname = args.hostname;
 	}
@@ -40,6 +45,24 @@ function interpretArguments() {
 		currentRequestId = args.currentRequestId;
 	}
 }
+
+//GET NETWORK IP
+function getNetworkIp() {
+	var interfaces = os.networkInterfaces();
+	var addresses = [];
+	for (var k in interfaces) {
+		for (var k2 in interfaces[k]) {
+			var address = interfaces[k][k2];
+			if (address.family === 'IPv4' && !address.internal) {
+				addresses.push(address.address);
+			}
+		}
+	}
+
+	debug('getNetworkIp, addresses: ' + addresses);
+	return addresses[0];
+}
+
 
 //WEBSERVER
 function createWebServer() {
