@@ -197,6 +197,9 @@ Time for the server to wait untill your custom media is `PLAYING`. Depends on me
 #### currenRequestId (ms) [1]
 The Cast protocoll requires a requestId for each request made to a device. The API creates a unique requestId for each request by incrementing the initial value: currentRequestId.
 
+#### discoveryTimeout (ms) [4000]
+Sets the time for the server to wait for all Cast devices on the network to reply on discovery. Increase this value if you're having difficulties discovering all devices on your network. 
+
 #### version (string, get only)
 Returns the version number of the current installation.
 
