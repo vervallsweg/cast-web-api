@@ -659,7 +659,6 @@ function setDevicePlaybackStop(address, sId) {
 }
 
 function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl, short) {
-	console.log("SHORT: " + short);
 	return new Promise(resolve => {
 		var castv2Client = new Castv2Client();
 
@@ -682,7 +681,13 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 			   	};
 
 			  	player.load(media, { autoplay: true }, function(err, status) {
-			      	try{ debug('Media loaded playerState: ', status.playerState); }
+			      	try{ 
+			      		debug('Media loaded playerState: ', status.playerState);
+			      		if (short==true) {
+			      			mediaStatus = JSON.stringify(status);
+			      			resolve(mediaStatus);
+			      		}
+			      	}
 			      	catch(e){
 			      		handleException(e);
 			      		try{player.close();}catch(e){handleException(e);}
@@ -690,23 +695,21 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 			    });
 
 		  		player.on('status', function(status) {
-			        debug('status.playerState: ', status.playerState);
-			        if (status.playerState=='PLAYING') {
-			        	debug('status.playerState is PLAYING');
-			        	if (player.session.sessionId) {
-					  		console.log('Player has sessionId: ', player.session.sessionId);
-
-					  		if (short==true) {
-				      			mediaStatus = JSON.stringify(status);
-				      			resolve(mediaStatus);
-				      		} else {
-				      			getMediaStatus(address, player.session.sessionId).then(mediaStatus => {
-						    		debug('getMediaStatus return value: ', mediaStatus);
-						    		resolve(mediaStatus);
-								});
-				      		}
-					  	}
-			        }
+		  			if (status) {
+		  				debug('status.playerState: ', status.playerState);
+				        if (status.playerState=='PLAYING') {
+				        	debug('status.playerState is PLAYING');
+				        	if (player.session.sessionId) {
+						  		console.log('Player has sessionId: ', player.session.sessionId);
+						  		if (short==false) {
+					      			getMediaStatus(address, player.session.sessionId).then(mediaStatus => {
+							    		debug('getMediaStatus return value: ', mediaStatus);
+							    		resolve(mediaStatus);
+									});
+					      		}
+						  	}
+				        }
+		  			}
 			   	});
 			  	
 

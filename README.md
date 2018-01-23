@@ -154,6 +154,10 @@ after playback of your custom media has started. For this it uses Google's [defa
 http://{host}/setMediaPlayback?address={address}&mediaType={mediaType}&mediaUrl={mediaUrl}&mediaStreamType={mediaStreamType}&mediaTitle={mediaTitle}&mediaSubtitle={mediaSubtitle}&mediaImageUrl={mediaImageUrl}
 ```
 
+#### setMediaPlaybackShort (address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl)
+**Returns MEDIA_STATUS,**
+like setMediaPlayback but doesn't wait till the device has stopped buffering and is playing. Makes it possible to play really short media files, without receiving an error code.
+
 #### config
 See [server settings](https://github.com/vervallsweg/cast-web-api/#server-settings "server settings")
 
