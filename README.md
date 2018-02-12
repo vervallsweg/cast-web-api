@@ -173,11 +173,11 @@ Basic settings can be set and read using the config request url or the correspon
 
 ### Usage
 ```
-http://{hostname}/comfig?get={parameter}
+http://{hostname}/config?get={parameter}
 ```
 
 ```
-http://{hostname}/comfig?set={parameter}&value={value}
+http://{hostname}/config?set={parameter}&value={value}
 ````
 Every successful get/set options returns a simple JSON with response: ok and the parameter value.
 ```
