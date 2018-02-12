@@ -7,13 +7,15 @@ const url = require('url');
 const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
 const fetch = require('node-fetch');
+const os = require('os');
+
 var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
 var networkTimeout = 2000;
 var discoveryTimeout = 4000;
 var appLoadTimeout = 6000;
-var thisVersion = '0.2.2';
+var thisVersion = '0.2.3';
 
 interpretArguments();
 createWebServer();
@@ -21,6 +23,9 @@ createWebServer();
 //HANDLE ARGUMENTS
 function interpretArguments() {
 	debug('Args: %s', JSON.stringify(args));
+	if (getNetworkIp()) {
+		hostname = getNetworkIp();
+	}
 	if (args.hostname) {
 		hostname = args.hostname;
 	}
@@ -40,6 +45,24 @@ function interpretArguments() {
 		currentRequestId = args.currentRequestId;
 	}
 }
+
+//GET NETWORK IP
+function getNetworkIp() {
+	var interfaces = os.networkInterfaces();
+	var addresses = [];
+	for (var k in interfaces) {
+		for (var k2 in interfaces[k]) {
+			var address = interfaces[k][k2];
+			if (address.family === 'IPv4' && !address.internal) {
+				addresses.push(address.address);
+			}
+		}
+	}
+
+	debug('getNetworkIp, addresses: ' + addresses);
+	return addresses[0];
+}
+
 
 //WEBSERVER
 function createWebServer() {
@@ -197,11 +220,13 @@ function createWebServer() {
 			}
 		}
 
-		else if (parsedUrl['pathname']=="/setMediaPlayback") {
+		else if (parsedUrl['pathname']=="/setMediaPlayback" || parsedUrl['pathname']=="/setMediaPlaybackShort") {
+			var short = false;
+			if (parsedUrl['pathname']=="/setMediaPlaybackShort") { short = true; }
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 			if (parsedUrl['query']['address'] && parsedUrl['query']['mediaType'] && parsedUrl['query']['mediaUrl'] && parsedUrl['query']['mediaStreamType'] && parsedUrl['query']['mediaTitle'] && parsedUrl['query']['mediaSubtitle'] && parsedUrl['query']['mediaImageUrl']) {
-				setMediaPlayback(parsedUrl['query']['address'], parsedUrl['query']['mediaType'], parsedUrl['query']['mediaUrl'], parsedUrl['query']['mediaStreamType'], parsedUrl['query']['mediaTitle'], parsedUrl['query']['mediaSubtitle'], parsedUrl['query']['mediaImageUrl']).then(mediaStatus => {
+				setMediaPlayback(parsedUrl['query']['address'], parsedUrl['query']['mediaType'], parsedUrl['query']['mediaUrl'], parsedUrl['query']['mediaStreamType'], parsedUrl['query']['mediaTitle'], parsedUrl['query']['mediaSubtitle'], parsedUrl['query']['mediaImageUrl'], short).then(mediaStatus => {
 					if (mediaStatus) {
 						res.statusCode = 200;
 						res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -633,7 +658,7 @@ function setDevicePlaybackStop(address, sId) {
 	});
 }
 
-function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl) {
+function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl, short) {
 	return new Promise(resolve => {
 		var castv2Client = new Castv2Client();
 
@@ -656,28 +681,38 @@ function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTi
 			   	};
 
 			  	player.load(media, { autoplay: true }, function(err, status) {
-			      	try{debug('Media loaded playerState: ', status.playerState);}
+			      	try{ 
+			      		debug('Media loaded playerState: ', status.playerState);
+			      		if (short==true) {
+			      			mediaStatus = JSON.stringify(status);
+			      			resolve(mediaStatus);
+			      		}
+			      	}
 			      	catch(e){
 			      		handleException(e);
 			      		try{player.close();}catch(e){handleException(e);}
 			      	}
 			    });
 
-			    player.on('status', function(status) {
-			        debug('status.playerState: ', status.playerState);
-			        if (status.playerState=='PLAYING') {
-			        	debug('status.playerState is PLAYING');
-			        	if (player.session.sessionId) {
-					  		console.log('Player has sessionId: ', player.session.sessionId);
-
-					  		getMediaStatus(address, player.session.sessionId).then(mediaStatus => {
-					    		debug('getMediaStatus return value: ', mediaStatus);
-					    		resolve(mediaStatus);
-							});
-					  	}
-			        }
+		  		player.on('status', function(status) {
+		  			if (status) {
+		  				debug('status.playerState: ', status.playerState);
+				        if (status.playerState=='PLAYING') {
+				        	debug('status.playerState is PLAYING');
+				        	if (player.session.sessionId) {
+						  		console.log('Player has sessionId: ', player.session.sessionId);
+						  		if (short==false) {
+					      			getMediaStatus(address, player.session.sessionId).then(mediaStatus => {
+							    		debug('getMediaStatus return value: ', mediaStatus);
+							    		resolve(mediaStatus);
+									});
+					      		}
+						  	}
+				        }
+		  			}
 			   	});
-			
+			  	
+
 			    setTimeout(() => {
 			    	closeClient(castv2Client);
 			    	resolve(null);

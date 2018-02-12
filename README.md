@@ -19,7 +19,7 @@ You can simply call the script and the web-api should be up and running!
 
     $ node (yourdirectory)/castWebApi.js
 
-By default the server runs on localhost:3000. They can be adjusted with the --hostname --port arguments:
+The server runs on your network ip and 3000. If it cannot determine your ip it defaults to 127.0.0.1. Both parameters can be adjusted with the --hostname --port arguments:
 
 	$ node (yourdirectory)/castWebApi.js --hostname=192.168.0.11 --port=8080
 
@@ -154,6 +154,10 @@ after playback of your custom media has started. For this it uses Google's [defa
 http://{host}/setMediaPlayback?address={address}&mediaType={mediaType}&mediaUrl={mediaUrl}&mediaStreamType={mediaStreamType}&mediaTitle={mediaTitle}&mediaSubtitle={mediaSubtitle}&mediaImageUrl={mediaImageUrl}
 ```
 
+#### setMediaPlaybackShort (address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl)
+**Returns MEDIA_STATUS,**
+like setMediaPlayback but doesn't wait till the device has stopped buffering and is playing. Makes it possible to play really short media files, without receiving an error code.
+
 #### config
 See [server settings](https://github.com/vervallsweg/cast-web-api/#server-settings "server settings")
 
@@ -169,11 +173,11 @@ Basic settings can be set and read using the config request url or the correspon
 
 ### Usage
 ```
-http://{hostname}/comfig?get={parameter}
+http://{hostname}/config?get={parameter}
 ```
 
 ```
-http://{hostname}/comfig?set={parameter}&value={value}
+http://{hostname}/config?set={parameter}&value={value}
 ````
 Every successful get/set options returns a simple JSON with response: ok and the parameter value.
 ```
@@ -192,6 +196,9 @@ Time for the server to wait untill your custom media is `PLAYING`. Depends on me
 
 #### currenRequestId (ms) [1]
 The Cast protocoll requires a requestId for each request made to a device. The API creates a unique requestId for each request by incrementing the initial value: currentRequestId.
+
+#### discoveryTimeout (ms) [4000]
+Sets the time for the server to wait for all Cast devices on the network to reply on discovery. Increase this value if you're having difficulties discovering all devices on your network. 
 
 #### version (string, get only)
 Returns the version number of the current installation.
