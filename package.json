@@ -3,12 +3,14 @@
 	"version" : "0.3.0",
 	"author" : "Tobias Haerke",
 	"engines": {
-		"node": ">= 4.1.0"
+		"node": ">= 6.0.0"
 	},
 	"main": "castWebApi.js",
 	"scripts": {
-		"cast-web-api": "node ./castWebApi.js",
-		"start": "node castWebApi.js"
+		"start": "node ./castWebApi.js"
+   	},
+	"bin": {
+		"cast-web-api": "./bin/cast-web-api"
 	},
 	"dependencies": {
 		"debug": "^2.1.1",
