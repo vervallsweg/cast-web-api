@@ -15,7 +15,7 @@ var currentRequestId = 1;
 var networkTimeout = 2000;
 var discoveryTimeout = 4000;
 var appLoadTimeout = 6000;
-var thisVersion = '0.2.3';
+var thisVersion = '0.3.0';
 
 interpretArguments();
 createWebServer();
@@ -318,7 +318,7 @@ function getDevices() {
 				debug('update received, service: ' + JSON.stringify(service));
 				var currentDevice = {
 					deviceName: getId(service.txt[0]),
-					deviceFriendlyName: getFriendlyName(service.txt[6]),
+					deviceFriendlyName: getFriendlyName(service.txt),
 					deviceAddress: service.addresses[0],
 					devicePort: service.port
 				}
@@ -739,8 +739,16 @@ function duplicateDevice(devices, device) {
 	return false;
 }
 
-function getFriendlyName(fn) {
-	if (fn&&fn!=null&&fn.match(/fn=*/)!=null) {
+function getFriendlyName(serviceTxt) {
+	if (!serviceTxt) {
+		debug('service.txt is missing');
+		return;
+	}
+	var fns = serviceTxt.filter(function (txt) {
+		return txt.match(/fn=*/)!=null;
+	});
+	if (fns.length>0) {
+		var fn=fns[0];
 		debug('Is friendly name: ' + fn);
 		return (fn.replace(/fn=*/, ''));
 	} else {
