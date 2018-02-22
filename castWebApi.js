@@ -8,6 +8,7 @@ const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
 const fetch = require('node-fetch');
 const os = require('os');
+const pkg = require('./package.json');
 
 var hostname = '127.0.0.1';
 var port = 3000;
@@ -15,7 +16,7 @@ var currentRequestId = 1;
 var networkTimeout = 2000;
 var discoveryTimeout = 4000;
 var appLoadTimeout = 6000;
-var thisVersion = '0.3.0';
+var thisVersion = pkg.version;
 
 interpretArguments();
 createWebServer();
