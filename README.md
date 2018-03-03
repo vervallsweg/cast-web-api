@@ -6,7 +6,7 @@ This simple web API is based on the awesome [node-castv2](https://github.com/thi
 However my code is **verry badly written and experimental, not intendend for any production environment!**
 
 ## Installation
-Install cast-web-api as a command line utility
+Install cast-web-api as a command line utility. Check your permissions first!
 
 	$ npm install cast-web-api -g
 
@@ -23,12 +23,12 @@ If you'd like to run the API in the background as a daemon [forever](https://git
 
 	$ npm install forever -g
 
-Here we pass the path of the command line utility script to Forever:
+### Linux/OSX
 
 	$ forever start `which cast-web-api`
 	$ forever stop `which cast-web-api`
 
-[Linux/OSX only] If you'd like to always run the API in the background even after reboots, you can use crontab.
+If you'd like to always run the API in the background even after reboots, you can use crontab.
 
 	$ # While using forever
 	$ (crontab -l 2>/dev/null; echo "@reboot `which forever` `which cast-web-api`")| crontab -
@@ -36,6 +36,19 @@ Here we pass the path of the command line utility script to Forever:
 	$ (crontab -l 2>/dev/null; echo "@reboot `which node` `which cast-web-api` >> ~/cast-web-api.log")| crontab -
 
 Adjust the command to pass parameters via `crontab -e`. The vanilla node version will log output to `~/cast-web-api.log` e.g. `/home/yourname/cast-web-api.log`.
+
+### Windows
+
+	> where cast-web-api
+
+Copy the result path till the npm folder. Then append 'node_modules\cast-web-api' to it. Then change to the new directory:
+
+	> cd C:\Users\name\AppData\Roaming\npm\node_modules\cast-web-api\
+
+Finally you can also use forever.
+
+	> forever start castWebApi.js
+	> forever stop castWebApi.js
 
 ## Usage
 
