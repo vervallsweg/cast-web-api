@@ -11,6 +11,7 @@ const os = require('os');
 const pkg = require('./package.json');
 const util = require('util');
 const events = require('events');
+const querystring = require('querystring');
 
 var hostname = '127.0.0.1';
 var port = 3000;
@@ -82,10 +83,9 @@ function createWebServer() {
 				res.statusCode = 200;
 				res.end(devices);
 			})
-			.catch(error => {
+			.catch(errorMessage => {
 				res.statusCode = 500;
-				res.end();
-				console.log('getDevices error: '+error);
+				res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
 			})
 		}
 
@@ -95,7 +95,7 @@ function createWebServer() {
 				.then(device => {
 					if (path[3]) {
 						console.log('PATH 3: ' + path[3]);
-						var result = {response: 'command unknown'};
+						var result = {response:'error', error:'command unknown'};
 						if (path[3]=='play') {
 							result = getDevice(path[2]).setPlay();
 						}
@@ -117,24 +117,28 @@ function createWebServer() {
 									console.log( 'settingLevel to: ' + (parseInt(path[4])/100) );
 									result = getDevice(path[2]).setVolume( (parseInt(path[4])/100) );
 								} else {
-									result = {response: 'level unknown'};
+									result = {response:'error', error:'level unknown'};
 								}
 							} else {
-								result = {response: 'level unknown'};
+								result = {response:'error', error:'level unknown'};
 							}
 						}
 						if (path[3]=='subscribe') {
 							if (path[4]) {
-								console.log( 'subscribe to: ' + path[4] );
-								result = getDevice(path[2]).createSubscription( path[4] );
+								console.log( 'subscribe to: ' + getRestOfPathArray(path, 4) );
+								result = { response:'ok' };
+								result = getDevice(path[2]).createSubscription( getRestOfPathArray(path, 4) );
 							} else {
-								result = {response: 'callback unknown'};
+								result = {response:'error', error:'callback unknown'};
 							}
 						}
+						if (path[3]=='unsubscribe') {
+							result = getDevice(path[2]).removeSubscription();
+						}
 						if (result=={response: 'ok'}) {
-							res.statusCode = 500;
-						} else {
 							res.statusCode = 200;
+						} else {
+							res.statusCode = 500;
 						}
 						res.end( JSON.stringify( result ) );
 					} else {
@@ -142,9 +146,9 @@ function createWebServer() {
 						res.end( JSON.stringify( device.toString() ) );
 					}
 				})
-				.catch(error => {
+				.catch(errorMessage => {
 					res.statusCode = 404;
-					res.end(''+error);
+					res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
 				})
 			} else {
 				res.statusCode = 200;
@@ -327,7 +331,7 @@ function CastDevice(id, address) {
 			this.castConnectionReceiver.receiver.send({ type: 'SET_VOLUME', volume: { level: targetLevel }, requestId: getNewRequestId() });
 			return {response:'ok'};
 		} else {
-			return {response:'disconnected'};
+			return {response:'error', error:'disconnected'};
 		}
 	}
 
@@ -336,7 +340,7 @@ function CastDevice(id, address) {
 			this.castConnectionReceiver.receiver.send({ type: 'SET_VOLUME', volume: { muted: isMuted }, requestId: getNewRequestId() });
 			return {response:'ok'};
 		} else {
-			return {response:'disconnected'};
+			return {response:'error', error:'disconnected'};
 		}
 	}
 
@@ -346,10 +350,10 @@ function CastDevice(id, address) {
 				this.castConnectionMedia.media.send({ type: 'PLAY', requestId: getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
 				return {response:'ok'};
 			} else {
-				return {response:'nothing playing'};
+				return {response:'error', error:'nothing playing'};
 			}
 		} else {
-			return {response:'nothing playing'};
+			return {response:'error', error:'nothing playing'};
 		}
 	}
 
@@ -359,10 +363,10 @@ function CastDevice(id, address) {
 				this.castConnectionMedia.media.send({ type: 'PAUSE', requestId: getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
 				return {response:'ok'};
 			} else {
-				return {response:'nothing playing'};
+				return {response:'error', error:'nothing playing'};
 			}
 		} else {
-			return {response:'nothing playing'};
+			return {response:'error', error:'nothing playing'};
 		}
 	}
 
@@ -371,13 +375,30 @@ function CastDevice(id, address) {
 			this.castConnectionReceiver.receiver.send({ type: 'STOP', sessionId: this.castConnectionReceiver.sessionId, requestId: getNewRequestId() });
 			return {response:'ok'};
 		} else {
-			return {response:'nothing playing'};
+			return {response:'error', error:'nothing playing'};
 		}
 	}
 
 	this.createSubscription = function(callback) {
 		createSubscription(this, callback);
 		return {response:'ok'};
+	}
+
+	this.removeSubscription = function() {
+		this.event.removeAllListeners('statusChange');
+		this.event.removeAllListeners('linkChanged');
+		this.callback = null;
+		return {response:'ok'};
+	}
+
+	this.setStatus = function(key, value) {
+		if (key=='volume' || key=='muted' || key=='application' || key=='status' || key=='title' || key=='subtitle') {
+			if (value == null) { value = '' };
+			if (this.status[key] != value) {
+				this.status[key] = value;
+				this.event.emit('statusChange');
+			}
+		}
 	}
 }
 
@@ -476,8 +497,7 @@ function disconnectMediaCastDevice(castDevice) {
 }
 
 function parseReceiverStatusCastDevice(castDevice, receiverStatus) {
-	console.log( 'parseReceiverStatusCastDevice(), receiverStatus: ' + JSON.stringify(receiverStatus) );
-	var statusChange = false;
+	debug( 'parseReceiverStatusCastDevice(), receiverStatus: ' + JSON.stringify(receiverStatus) );
 
 	if (receiverStatus.type == 'RECEIVER_STATUS') {
 		if (receiverStatus.status.applications) {
@@ -490,10 +510,7 @@ function parseReceiverStatusCastDevice(castDevice, receiverStatus) {
 				}
 			}
 			if ( receiverStatus.status.applications[0].displayName ) {
-				if (castDevice.status.application != receiverStatus.status.applications[0].displayName) {
-					castDevice.status.application = receiverStatus.status.applications[0].displayName;
-					statusChange = true;
-				}
+				castDevice.setStatus('application', receiverStatus.status.applications[0].displayName);
 			}
 		} else {
 			castDevice.castConnectionReceiver.sessionId = null;
@@ -501,24 +518,14 @@ function parseReceiverStatusCastDevice(castDevice, receiverStatus) {
 			castDevice.disconnectMedia();
 		}
 		if (receiverStatus.status.volume) {
-			if ( castDevice.status.volume != Math.round(receiverStatus.status.volume.level*100) ) {
-				castDevice.status.volume = Math.round(receiverStatus.status.volume.level*100);
-				statusChange = true;
-			}
-			if (castDevice.status.muted != receiverStatus.status.volume.muted) {
-				castDevice.status.muted = receiverStatus.status.volume.muted;
-				statusChange = true;
-			}
+			castDevice.setStatus( 'volume', Math.round(receiverStatus.status.volume.level*100) );
+			castDevice.setStatus('muted', receiverStatus.status.volume.muted);
 		}
-	}
-
-	if (statusChange) {
-		castDevice.event.emit('statusChange');
 	}
 }
 
 function parseMediaStatusCastDevice(castDevice, mediaStatus) {
-	console.log( 'parseMediaStatusCastDevice() mediaStatus: ' + JSON.stringify(mediaStatus) );
+	debug( 'parseMediaStatusCastDevice() mediaStatus: ' + JSON.stringify(mediaStatus) );
 
 	if (mediaStatus.type == 'MEDIA_STATUS') {
 		if (mediaStatus.status[0]) {
@@ -526,16 +533,16 @@ function parseMediaStatusCastDevice(castDevice, mediaStatus) {
 				if (mediaStatus.status[0].media.metadata) {
 					var metadataType = mediaStatus.status[0].media.metadata.metadataType;
 					if(metadataType<=1) {
-						castDevice.status.title = mediaStatus.status[0].media.metadata.title;
-						castDevice.status.subtitle = mediaStatus.status[0].media.metadata.subtitle;
+						castDevice.setStatus('title', mediaStatus.status[0].media.metadata.title);
+						castDevice.setStatus('subtitle', mediaStatus.status[0].media.metadata.subtitle);
 					} 
 					if(metadataType==2) {
-						castDevice.status.title = mediaStatus.status[0].media.metadata.seriesTitle;
-						castDevice.status.subtitle = mediaStatus.status[0].media.metadata.subtitle;
+						castDevice.setStatus('title', mediaStatus.status[0].media.metadata.seriesTitle);
+						castDevice.setStatus('subtitle', mediaStatus.status[0].media.metadata.subtitle);
 					} 
 					if(metadataType>=3 && metadataType<=4) {
-						castDevice.status.title = mediaStatus.status[0].media.metadata.title;
-						castDevice.status.subtitle = mediaStatus.status[0].media.metadata.artist;
+						castDevice.setStatus('title', mediaStatus.status[0].media.metadata.title);
+						castDevice.setStatus('subtitle', mediaStatus.status[0].media.metadata.artist);
 					}
 				}
 			}
@@ -545,15 +552,17 @@ function parseMediaStatusCastDevice(castDevice, mediaStatus) {
 			}
 
 			if (mediaStatus.status[0].playerState) {
-				castDevice.status.status = mediaStatus.status[0].playerState;
+				castDevice.setStatus('status', mediaStatus.status[0].playerState);
 			}
 		}
 	}
 }
 
 function createSubscription(castDevice, callback) {
-	console.log('createSubscription(), callback: ' + callback + ', for: '+ castDevice.id);
-	castDevice.callback = callback;
+	castDevice.removeSubscription();
+	castDevice.callback = url.parse('http://'+callback);
+
+	console.log('createSubscription(), for: ' + castDevice.id + ', callback: '+ JSON.stringify(castDevice.callback));
 
 	castDevice.event.on('statusChange', function() {
 		sendCallBack( castDevice.toString(), castDevice.callback );
@@ -567,8 +576,51 @@ function createSubscription(castDevice, callback) {
 }
 
 function sendCallBack(status, callback) {
-	console.log( 'sendCallBack, to: '+callback+', status: ' + JSON.stringify(status) );
-	//TODO: sendCallBack
+	console.log( 'sendCallBack() to: '+ JSON.stringify(callback) +', status: ' + JSON.stringify(status) );
+	
+	try{
+		var data = JSON.stringify(status);
+
+		var options = {
+			hostname: callback.hostname,
+			port: callback.port,
+			path: callback.path,
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': Buffer.byteLength(data)
+			}
+		};
+
+		var req = http.request(options, function(res) {
+			res.setEncoding('utf8');
+			/*res.on('data', function (chunk) {
+				console.log("Answer: " + chunk);
+			});*/
+		});
+
+		req.write(data);
+		req.end();
+	} catch (e) {
+		console.log('sendCallBack(), cannot send to: ' + callback + ', error: ' + error);
+	}
+}
+
+function getRestOfPathArray(pathArray, start) {
+	var restOfPathArray = '';
+	pathArray.forEach(function(element, index) {
+		if (index >= start) {
+			if (index != start) {
+				restOfPathArray += '/';
+			}
+			restOfPathArray += element;
+		}
+	});
+	if (restOfPathArray == '') {
+		return null;
+	} else {
+		return restOfPathArray;
+	}
 }
 
 //GOOGLE CAST FUNCTIONS
