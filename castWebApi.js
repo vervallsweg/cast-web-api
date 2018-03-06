@@ -9,6 +9,8 @@ const args = require('minimist')(process.argv.slice(2));
 const fetch = require('node-fetch');
 const os = require('os');
 const pkg = require('./package.json');
+const util = require('util');
+const events = require('events');
 
 var hostname = '127.0.0.1';
 var port = 3000;
@@ -17,6 +19,9 @@ var networkTimeout = 2000;
 var discoveryTimeout = 4000;
 var appLoadTimeout = 6000;
 var thisVersion = pkg.version;
+
+var devicesDiscoverd = [];
+var devicesSubscribed = [];
 
 interpretArguments();
 createWebServer();
@@ -64,232 +69,97 @@ function getNetworkIp() {
 	return addresses[0];
 }
 
-
 //WEBSERVER
 function createWebServer() {
 	const server = http.createServer((req, res) => {
 		var parsedUrl = url.parse(req.url, true);
+		var path = parsedUrl['pathname'].split('/');
+		res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
-		if (parsedUrl['pathname']=="/getDevices") {
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			getDevices().then(devices => {
-				if (devices) {
-					res.statusCode = 200;
-					res.end(devices);
-				} else {
-					res.statusCode = 500;
-					res.end();
-				}
-			});
+		if (path[1]=="discover") {
+			getDevices()
+			.then(devices => {
+				res.statusCode = 200;
+				res.end(devices);
+			})
+			.catch(error => {
+				res.statusCode = 500;
+				res.end();
+				console.log('getDevices error: '+error);
+			})
 		}
 
-		else if (parsedUrl['pathname']=="/getDeviceStatus") {
-			if (parsedUrl['query']['address']) {
-				getDeviceStatus(parsedUrl['query']['address']).then(deviceStatus => {
-					if (deviceStatus) {
+		if (path[1]=="device") {
+			if (path[2]) {
+				getDeviceSafe(path[2])
+				.then(device => {
+					if (path[3]) {
+						console.log('PATH 3: ' + path[3]);
+						var result = {response: 'command unknown'};
+						if (path[3]=='play') {
+							result = getDevice(path[2]).setPlay();
+						}
+						if (path[3]=='pause') {
+							result = getDevice(path[2]).setPause();
+						}
+						if (path[3]=='stop') {
+							result = getDevice(path[2]).setStop();
+						}
+						if (path[3]=='mute') {
+							result = getDevice(path[2]).setMuted(true);
+						}
+						if (path[3]=='unmute') {
+							result = getDevice(path[2]).setMuted(false);
+						}
+						if (path[3]=='volume') {
+							if (path[4]) {
+								if ( parseInt(path[4])>=0 && parseInt(path[4])<=100) {
+									console.log( 'settingLevel to: ' + (parseInt(path[4])/100) );
+									result = getDevice(path[2]).setVolume( (parseInt(path[4])/100) );
+								} else {
+									result = {response: 'level unknown'};
+								}
+							} else {
+								result = {response: 'level unknown'};
+							}
+						}
+						if (path[3]=='subscribe') {
+							if (path[4]) {
+								console.log( 'subscribe to: ' + path[4] );
+								result = getDevice(path[2]).createSubscription( path[4] );
+							} else {
+								result = {response: 'callback unknown'};
+							}
+						}
+						if (result=={response: 'ok'}) {
+							res.statusCode = 500;
+						} else {
+							res.statusCode = 200;
+						}
+						res.end( JSON.stringify( result ) );
+					} else {
 						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-						res.end(deviceStatus);
-					} else {
-						res.statusCode = 500;
-						res.end();
+						res.end( JSON.stringify( device.toString() ) );
 					}
-				});
+				})
+				.catch(error => {
+					res.statusCode = 404;
+					res.end(''+error);
+				})
 			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
+				res.statusCode = 200;
+				res.end( JSON.stringify( getAllDevices() ) );
 			}
 		}
 
-		else if (parsedUrl['pathname']=="/setDeviceVolume") {
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			if (parsedUrl['query']['address'] && parsedUrl['query']['volume']) {
-				setDeviceVolume(parsedUrl['query']['address'], parseFloat(parsedUrl['query']['volume'])).then(deviceStatus => {
-					if (deviceStatus) {
-						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-						res.end(deviceStatus);
-					} else {
-						res.statusCode = 500;
-						res.end();
-					}
-				});
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
+		if (path[1]=="/config") {
+			//TODO
 		}
 
-		else if (parsedUrl['pathname']=="/setDeviceMuted") {
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			if (parsedUrl['query']['address'] && parsedUrl['query']['muted']) {
-				setDeviceMuted(parsedUrl['query']['address'], (parsedUrl['query']['muted']=="true")).then(deviceStatus => {
-					if (deviceStatus) {
-						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-						res.end(deviceStatus);
-					} else {
-						res.statusCode = 500;
-						res.end();
-					}
-				});
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
-		}
-
-		else if (parsedUrl['pathname']=="/getMediaStatus") {
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId']) {
-				getMediaStatus(parsedUrl['query']['address'], parsedUrl['query']['sessionId']).then(mediaStatus => {
-					if (mediaStatus) {
-						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-						res.end(mediaStatus);
-					} else {
-						res.statusCode = 500;
-						res.end();
-					}
-				});
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
-		}
-
-		else if (parsedUrl['pathname']=="/setMediaPlaybackPause") {
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId'] && parsedUrl['query']['mediaSessionId']) {
-				setMediaPlaybackPause(parsedUrl['query']['address'], parsedUrl['query']['sessionId'], parsedUrl['query']['mediaSessionId']).then(mediaStatus => {
-					if (mediaStatus) {
-						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-						res.end(mediaStatus);
-					} else {
-						res.statusCode = 500;
-						res.end();
-					}
-				});
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
-		}
-
-		else if (parsedUrl['pathname']=="/setMediaPlaybackPlay") {
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId'] && parsedUrl['query']['mediaSessionId']) {
-				setMediaPlaybackPlay(parsedUrl['query']['address'], parsedUrl['query']['sessionId'], parsedUrl['query']['mediaSessionId']).then(mediaStatus => {
-					if (mediaStatus) {
-						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-						res.end(mediaStatus);
-					} else {
-						res.statusCode = 500;
-						res.end();
-					}
-				});
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
-		}
-
-		else if (parsedUrl['pathname']=="/setDevicePlaybackStop") {
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			if (parsedUrl['query']['address'] && parsedUrl['query']['sessionId']) {
-				setDevicePlaybackStop(parsedUrl['query']['address'], parsedUrl['query']['sessionId']).then(mediaStatus => {
-					if (mediaStatus) {
-						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-						res.end(mediaStatus);
-					} else {
-						res.statusCode = 500;
-						res.end();
-					}
-				});
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
-		}
-
-		else if (parsedUrl['pathname']=="/setMediaPlayback" || parsedUrl['pathname']=="/setMediaPlaybackShort") {
-			var short = false;
-			if (parsedUrl['pathname']=="/setMediaPlaybackShort") { short = true; }
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			if (parsedUrl['query']['address'] && parsedUrl['query']['mediaType'] && parsedUrl['query']['mediaUrl'] && parsedUrl['query']['mediaStreamType'] && parsedUrl['query']['mediaTitle'] && parsedUrl['query']['mediaSubtitle'] && parsedUrl['query']['mediaImageUrl']) {
-				setMediaPlayback(parsedUrl['query']['address'], parsedUrl['query']['mediaType'], parsedUrl['query']['mediaUrl'], parsedUrl['query']['mediaStreamType'], parsedUrl['query']['mediaTitle'], parsedUrl['query']['mediaSubtitle'], parsedUrl['query']['mediaImageUrl'], short).then(mediaStatus => {
-					if (mediaStatus) {
-						res.statusCode = 200;
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-						res.end(mediaStatus);
-					} else {
-						res.statusCode = 500;
-						res.end();
-					}
-				});
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
-		}
-
-		else if (parsedUrl['pathname']=="/config") {
-			res.statusCode = 200;
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-			var configParameter, configOperation;
-
-			if (parsedUrl['query']['set']) {configParameter=parsedUrl['query']['set']; configOperation='set';}
-			if (parsedUrl['query']['get']) {configParameter=parsedUrl['query']['get']; configOperation='get';}
-
-			if (configParameter==['networkTimeout']) {
-				if (configOperation=='set') {networkTimeout = parsedUrl['query']['value'];}
-				res.end('{"response": "ok", "networkTimeout": '+networkTimeout+'}');
-			} else if (configParameter==['discoveryTimeout']) {
-				if (configOperation=='set') {discoveryTimeout = parsedUrl['query']['value'];}
-				res.end('{"response": "ok", "discoveryTimeout": '+discoveryTimeout+'}');
-			} else if (configParameter==['currentRequestId']) {
-				if (configOperation=='set') {currentRequestId = parsedUrl['query']['value'];}
-				res.end('{"response": "ok", "currentRequestId": '+currentRequestId+'}');
-			} else if (configParameter==['appLoadTimeout']) {
-				if (configOperation=='set') {appLoadTimeout = parsedUrl['query']['value'];}
-				res.end('{"response": "ok", "appLoadTimeout": '+appLoadTimeout+'}');
-			} else if (configParameter==['version']) {
-				res.end('{"response": "ok", "version": "'+thisVersion+'"}');
-			} else if (configParameter==['latestVersion']) {
-				getLatestVersion().then(latestVersion => {
-					if (latestVersion!=null) {
-						res.end('{"response": "ok", "latestVersion": "'+ latestVersion +'"}');
-					} else {
-						res.statusCode = 500;
-						res.end();
-					}
-				});
-				
-			} else {
-				res.statusCode = 400;
-				res.end('Parameter error');
-			}
-		}
-
-		else if (parsedUrl['pathname']=="/") {
+		if (path[1]=="") {
 			res.statusCode = 200;
 			res.end('cast-web-api version ' + thisVersion)
-		}
-
-		else {
-			res.statusCode = 404;
-			res.end('Not found');
-		}
+		} 
 	});
 
 	server.listen(port, hostname, () => {
@@ -301,438 +171,461 @@ function createWebServer() {
 	});
 }
 
-//GOOGLE CAST FUNCTIONS
-function getDevices() {
-	var updateCounter=0;
-	var devices = [];
-	var browser = mdns.createBrowser(mdns.tcp('googlecast'));
-	var exception;
+function createDevice(id) {
+	return new Promise( function(resolve, reject) {
+		if ( !deviceExists(id) ) {
+			getDeviceAddress(id)
+			.then(returnAddress => {
+				var castDevice = new CastDevice(id, returnAddress);
+				castDevice.connect();
+				devicesSubscribed.push(castDevice);
+				resolve(true);
+			})
+			.catch(error => {
+				reject(error);
+			})
+		} else {
+			resolve(true);
+		}
+	});
+}
 
-	try {
-		browser.on('ready', function(){
-			browser.discover();
-		});
-
-		browser.on('update', function(service){
-			try {
-				updateCounter++;
-				debug('update received, service: ' + JSON.stringify(service));
-				var currentDevice = {
-					deviceName: getId(service.txt[0]),
-					deviceFriendlyName: getFriendlyName(service.txt),
-					deviceAddress: service.addresses[0],
-					devicePort: service.port
+function getDeviceAddress(id) {
+	return new Promise( function(resolve, reject) {
+		console.log('getDeviceAddress(), id: '+ id);
+		if ( getDeviceAddressDevicesDiscoverd(id) ) {
+			console.log('getDeviceAddress(), found on try 1 id: '+ id);
+			resolve( getDeviceAddressDevicesDiscoverd(id) );
+		} else {
+			console.log('getDeviceAddress(), RETRY id: '+ id);
+			getDevices()
+			.then(devices => {
+				if ( getDeviceAddressDevicesDiscoverd(id) ) {
+					console.log('getDeviceAddress(), found on try 2 id: '+ id);
+					resolve( getDeviceAddressDevicesDiscoverd(id) );
+				} else {
+					console.log('getDeviceAddress(), NOT found on try 2 id: '+ id);
+					reject('Device not found.');
 				}
-		  		if (!duplicateDevice(devices, currentDevice)&&service.type[0].name!='googlezone') {
-		  			devices.push(currentDevice);
-		  			debug('Added device: '+ JSON.stringify(currentDevice));
-		  		} else {
-		  			debug('Duplicat or googlezone device: ' + JSON.stringify(currentDevice))
-		  		}
-		  	} catch (e) {
-				console.error('Exception caught while prcessing service: ' + e);
-			}
-		});
-	} catch (e) {
-		console.error('Exception caught: ' + e);
-		exception = e;
+			})
+			.catch(error => {
+				console.log('getDeviceAddress(), error getDevices() '+ error);
+				reject(error);
+			})
+		}
+	});
+}
+
+function getDeviceAddressDevicesDiscoverd(id) {
+	var address = null;
+	devicesDiscoverd.forEach(function(element) {
+		if (element.id == id) {
+			address = { host: element.ip, port: element.port };
+			console.log('getDeviceAddressDevicesDiscoverd() found, id: '+ id + ', host: '+address.host + ', port: '+address.port);
+		}
+	});
+	return address;
+}
+
+function deviceExists(id) {
+	var exists = false;
+	devicesSubscribed.forEach(function(element) {
+		if (element.id == id) {
+			exists = true;
+		}
+	});
+	return exists;
+}
+
+function getDevice(id) {
+	var returnElement = null;
+	devicesSubscribed.forEach(function(element) {
+		if (element.id == id) {
+			returnElement = element;
+		}
+	});
+	return returnElement;
+}
+
+function getDeviceSafe(id){
+	return new Promise( function(resolve, reject) {
+		if ( getDevice(id) ) {
+			resolve( getDevice(id) );
+		} else {
+			createDevice(id)
+			.then(created => {
+				getDevice(id).event.once('linkChanged', function() {
+					console.log('linkChanged: ' + getDevice(id).castConnectionReceiver.link);
+					resolve( getDevice(id) );
+				});
+			})
+			.catch(error => {
+				reject(error);
+			})
+		}
+	});
+}
+
+function getAllDevices() {
+	var devices = [];
+	devicesSubscribed.forEach(function(element) {
+		devices.push( element.toString() );
+	});
+	return devices;
+}
+
+function CastDevice(id, address) {
+	this.id = id;
+	this.address = address;
+	this.event = new events.EventEmitter();
+	this.castConnectionReceiver;
+	this.castConnectionMedia;
+	this.status = {
+		volume: 0,
+		muted: false,
+		application: '',
+		status: '',
+		title: '',
+		subtitle: ''
 	}
 
-	return new Promise(resolve => {
-		setTimeout(() => {
-			try{browser.stop();} catch (e) {console.error('Exception caught: ' + e); exception=e;}
-			if (!exception) {
-				if (devices.length>0) {
-					debug('devices.length>0, updateCounter: ' + updateCounter);
-					resolve(JSON.stringify(devices));
+	this.connect = function() {
+		connectReceiverCastDevice(this);
+	};
+
+    this.disconnect = function() {
+		disconnectReceiverCastDevice(this);
+	};
+
+	this.connectMedia = function() {
+		if (this.castConnectionReceiver.sessionId) {
+			connectMediaCastDevice(this, this.castConnectionReceiver.sessionId);
+		}
+	};
+
+	this.disconnectMedia = function() {
+		if (this.castConnectionMedia) {
+			disconnectMediaCastDevice(this);
+		}
+	};
+
+	this.toString = function() {
+		return {
+			id: this.id,
+			connection: this.castConnectionReceiver.link,
+			volume: this.status.volume,
+			muted: this.status.muted,
+			application: this.status.application,
+			status: this.status.status,
+			title: this.status.title,
+			subtitle: this.status.subtitle
+		}
+	}
+
+	this.setVolume = function(targetLevel) {
+		if (this.castConnectionReceiver.receiver) {
+			this.castConnectionReceiver.receiver.send({ type: 'SET_VOLUME', volume: { level: targetLevel }, requestId: getNewRequestId() });
+			return {response:'ok'};
+		} else {
+			return {response:'disconnected'};
+		}
+	}
+
+	this.setMuted = function(isMuted) {
+		if (this.castConnectionReceiver.receiver) {
+			this.castConnectionReceiver.receiver.send({ type: 'SET_VOLUME', volume: { muted: isMuted }, requestId: getNewRequestId() });
+			return {response:'ok'};
+		} else {
+			return {response:'disconnected'};
+		}
+	}
+
+	this.setPlay = function() {
+		if (this.castConnectionMedia) {
+			if (this.castConnectionMedia.media && this.castConnectionReceiver.sessionId && this.castConnectionMedia.mediaSessionId) {
+				this.castConnectionMedia.media.send({ type: 'PLAY', requestId: getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
+				return {response:'ok'};
+			} else {
+				return {response:'nothing playing'};
+			}
+		} else {
+			return {response:'nothing playing'};
+		}
+	}
+
+	this.setPause = function() {
+		if (this.castConnectionMedia) {
+			if (this.castConnectionMedia.media && this.castConnectionReceiver.sessionId && this.castConnectionMedia.mediaSessionId) {
+				this.castConnectionMedia.media.send({ type: 'PAUSE', requestId: getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
+				return {response:'ok'};
+			} else {
+				return {response:'nothing playing'};
+			}
+		} else {
+			return {response:'nothing playing'};
+		}
+	}
+
+	this.setStop = function() {
+		if (this.castConnectionReceiver.sessionId) {
+			this.castConnectionReceiver.receiver.send({ type: 'STOP', sessionId: this.castConnectionReceiver.sessionId, requestId: getNewRequestId() });
+			return {response:'ok'};
+		} else {
+			return {response:'nothing playing'};
+		}
+	}
+
+	this.createSubscription = function(callback) {
+		createSubscription(this, callback);
+		return {response:'ok'};
+	}
+}
+
+function connectReceiverCastDevice(castDevice) {
+	try {
+		console.log('CastDevice.connect() id: '+ castDevice.id + ', host: ' + castDevice.address.host + ', port: ' + castDevice.address.port );
+		castDevice.castConnectionReceiver = new Object();
+		castDevice.castConnectionReceiver.client = new Client();
+
+		castDevice.castConnectionReceiver.client.connect(castDevice.address, function() {
+			castDevice.castConnectionReceiver.connection = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+		    castDevice.castConnectionReceiver.heartbeat = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.heartbeat', 'JSON');
+		    castDevice.castConnectionReceiver.receiver = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
+
+			castDevice.castConnectionReceiver.connection.send({ type: 'CONNECT' });
+			castDevice.castConnectionReceiver.receiver.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
+
+		    castDevice.castConnectionReceiver.receiver.on('message', function(data, broadcast) {
+		    	parseReceiverStatusCastDevice(castDevice, data);
+		    	if (castDevice.castConnectionReceiver.link != 'connected') {
+					castDevice.event.emit('linkChanged');
+					castDevice.castConnectionReceiver.link = 'connected';
+		    	}
+		   	});
+
+		   	castDevice.castConnectionReceiver.heartBeatIntervall = setInterval(function() {
+				if (castDevice.castConnectionReceiver) {
+					castDevice.castConnectionReceiver.heartbeat.send({ type: 'PING' });
+				}
+			}, 5000);
+		});
+		castDevice.castConnectionReceiver.client.on('error', function(err) {
+		 	console.log('castDevice.castConnectionReceiver.client error: '+err);
+		 	if (castDevice.castConnectionReceiver.link != 'disconnected') {
+		 		castDevice.castConnectionReceiver.link = 'disconnected';
+		 		castDevice.event.emit('linkChanged');
+		 	}
+		});
+	} catch (e) {
+		console.log('CastDevice.connect() exception: '+e);
+		if (castDevice.castConnectionReceiver.link != 'disconnected') {
+			castDevice.castConnectionReceiver.link = 'disconnected';
+			castDevice.event.emit('linkChanged');
+		}
+	}
+}
+
+function disconnectReceiverCastDevice(castDevice) {
+	console.log('castDevice.disconnect()');
+	castDevice.castConnectionReceiver.connection.send({ type: 'CLOSE' });
+	castDevice.castConnectionReceiver.client.close();
+	castDevice.castConnectionReceiver.link = 'disconnected';
+	castDevice.castConnectionReceiver = null;
+}
+
+function connectMediaCastDevice(castDevice, sessionId) {
+	console.log('CastDevice.connectMedia() id: '+ castDevice.id + ', host: ' + castDevice.address.host + ', port: ' + castDevice.address.port + ', sessionId: ' + sessionId);
+	castDevice.castConnectionMedia = new Object();
+	castDevice.castConnectionMedia.client = new Client();
+
+	castDevice.castConnectionMedia.client.connect(castDevice.address, function() {
+		castDevice.castConnectionMedia.connection = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+		castDevice.castConnectionMedia.heartbeat = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.heartbeat', 'JSON');
+		castDevice.castConnectionMedia.media = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
+
+		castDevice.castConnectionMedia.connection.send({ type: 'CONNECT' });
+		castDevice.castConnectionMedia.media.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
+
+		castDevice.castConnectionMedia.media.on('message', function(data, broadcast) {
+			parseMediaStatusCastDevice(castDevice, data);
+			castDevice.castConnectionMedia.link = 'connected';
+		});
+
+		castDevice.castConnectionMedia.heartBeatIntervall = setInterval(function() {
+			if (castDevice.castConnectionMedia) {
+				castDevice.castConnectionMedia.heartbeat.send({ type: 'PING' });
+			}
+		}, 5000);
+	});
+	castDevice.castConnectionMedia.client.on('error', function(err) {
+		console.log('castConnectionMedia.client error: '+err);
+	});
+}
+
+function disconnectMediaCastDevice(castDevice) {
+	console.log('castDevice.disconnectMedia()');
+	clearInterval(castDevice.castConnectionMedia.heartBeatIntervall);
+	castDevice.castConnectionMedia.connection.send({ type: 'CLOSE' });
+	castDevice.castConnectionMedia.client.close();
+	castDevice.castConnectionMedia.link = 'disconnected';
+	castDevice.castConnectionMedia = null;
+	castDevice.status.status = '';
+	castDevice.status.title = '';
+	castDevice.status.subtitle = '';
+	castDevice.event.emit('statusChange');
+}
+
+function parseReceiverStatusCastDevice(castDevice, receiverStatus) {
+	console.log( 'parseReceiverStatusCastDevice(), receiverStatus: ' + JSON.stringify(receiverStatus) );
+	var statusChange = false;
+
+	if (receiverStatus.type == 'RECEIVER_STATUS') {
+		if (receiverStatus.status.applications) {
+			if ( receiverStatus.status.applications[0].sessionId != castDevice.castConnectionReceiver.sessionId) {
+				console.log('parseReceiverStatusCastDevice(), sessionId has changed');
+				if (receiverStatus.status.applications[0].isIdleScreen!=true) {
+					console.log('parseReceiverStatusCastDevice() isIdleScreen: '+receiverStatus.status.applications[0].isIdleScreen+', sessionId changed to: '+receiverStatus.status.applications[0].sessionId+', from: '+castDevice.castConnectionReceiver.sessionId);
+					castDevice.castConnectionReceiver.sessionId = receiverStatus.status.applications[0].sessionId;
+					castDevice.connectMedia();
 				}
 			}
-			resolve(null);
+			if ( receiverStatus.status.applications[0].displayName ) {
+				if (castDevice.status.application != receiverStatus.status.applications[0].displayName) {
+					castDevice.status.application = receiverStatus.status.applications[0].displayName;
+					statusChange = true;
+				}
+			}
+		} else {
+			castDevice.castConnectionReceiver.sessionId = null;
+			castDevice.status.application = '';
+			castDevice.disconnectMedia();
+		}
+		if (receiverStatus.status.volume) {
+			if ( castDevice.status.volume != Math.round(receiverStatus.status.volume.level*100) ) {
+				castDevice.status.volume = Math.round(receiverStatus.status.volume.level*100);
+				statusChange = true;
+			}
+			if (castDevice.status.muted != receiverStatus.status.volume.muted) {
+				castDevice.status.muted = receiverStatus.status.volume.muted;
+				statusChange = true;
+			}
+		}
+	}
+
+	if (statusChange) {
+		castDevice.event.emit('statusChange');
+	}
+}
+
+function parseMediaStatusCastDevice(castDevice, mediaStatus) {
+	console.log( 'parseMediaStatusCastDevice() mediaStatus: ' + JSON.stringify(mediaStatus) );
+
+	if (mediaStatus.type == 'MEDIA_STATUS') {
+		if (mediaStatus.status[0]) {
+			if (mediaStatus.status[0].media) {
+				if (mediaStatus.status[0].media.metadata) {
+					var metadataType = mediaStatus.status[0].media.metadata.metadataType;
+					if(metadataType<=1) {
+						castDevice.status.title = mediaStatus.status[0].media.metadata.title;
+						castDevice.status.subtitle = mediaStatus.status[0].media.metadata.subtitle;
+					} 
+					if(metadataType==2) {
+						castDevice.status.title = mediaStatus.status[0].media.metadata.seriesTitle;
+						castDevice.status.subtitle = mediaStatus.status[0].media.metadata.subtitle;
+					} 
+					if(metadataType>=3 && metadataType<=4) {
+						castDevice.status.title = mediaStatus.status[0].media.metadata.title;
+						castDevice.status.subtitle = mediaStatus.status[0].media.metadata.artist;
+					}
+				}
+			}
+
+			if (mediaStatus.status[0].mediaSessionId) {
+				castDevice.castConnectionMedia.mediaSessionId = mediaStatus.status[0].mediaSessionId;
+			}
+
+			if (mediaStatus.status[0].playerState) {
+				castDevice.status.status = mediaStatus.status[0].playerState;
+			}
+		}
+	}
+}
+
+function createSubscription(castDevice, callback) {
+	console.log('createSubscription(), callback: ' + callback + ', for: '+ castDevice.id);
+	castDevice.callback = callback;
+
+	castDevice.event.on('statusChange', function() {
+		sendCallBack( castDevice.toString(), castDevice.callback );
+	});
+
+	castDevice.event.on('linkChanged', function() {
+		sendCallBack( castDevice.toString(), castDevice.callback );
+	});
+
+	castDevice.event.emit('statusChange');
+}
+
+function sendCallBack(status, callback) {
+	console.log( 'sendCallBack, to: '+callback+', status: ' + JSON.stringify(status) );
+	//TODO: sendCallBack
+}
+
+//GOOGLE CAST FUNCTIONS
+function getDevices() {
+	return new Promise( function(resolve, reject) {
+		var updateCounter=0;
+		var devices = [];
+		var browser = mdns.createBrowser(mdns.tcp('googlecast'));
+		var exception;
+
+		try {
+			browser.on('ready', function(){
+				browser.discover();
+			});
+
+			browser.on('update', function(service){
+				try {
+					updateCounter++;
+					debug('update received, service: ' + JSON.stringify(service));
+					var currentDevice = {
+						id: getId(service.txt[0]),
+						name: getFriendlyName(service.txt),
+						ip: service.addresses[0],
+						port: service.port
+					}
+			  		if (!duplicateDevice(devices, currentDevice)&&service.type[0].name!='googlezone') {
+			  			devices.push(currentDevice);
+			  			debug('Added device: '+ JSON.stringify(currentDevice));
+			  		} else {
+			  			debug('Duplicat or googlezone device: ' + JSON.stringify(currentDevice))
+			  		}
+			  	} catch (e) {
+					console.error('Exception caught while prcessing service: ' + e);
+				}
+			});
+		} catch (e) {
+			reject('Exception caught: ' + e);
+		}
+
+		setTimeout(() => {
+			try{
+				browser.stop();
+			} catch (e) {
+				reject('Exception caught: ' + e)
+			}
+			debug('updateCounter: ' + updateCounter);
+			devicesDiscoverd = devices;
+			resolve(JSON.stringify(devices));
 	  	}, discoveryTimeout);
 	});
 }
 
-function getDeviceStatus(address) {
-  	return new Promise(resolve => {
-		var deviceStatus, connection, receiver, exception;
-		var client = new Client();
-		var corrRequestId = getNewRequestId();
-
-		try {
-			debug('getDeviceStatus addr: %a', address);
-		 	client.connect(parseAddress(address), function() {
-			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
-
-			    connection.send({ type: 'CONNECT' });
-				receiver.send({ type: 'GET_STATUS', requestId: corrRequestId });
-			    
-			    receiver.on('message', function(data, broadcast) {
-				  	if(data.type == 'RECEIVER_STATUS') {
-				  		if (data.requestId==corrRequestId) {
-				  			deviceStatus = data;
-				  			debug('getDeviceStatus recv: %s', JSON.stringify(deviceStatus));
-				  			resolve(JSON.stringify(deviceStatus));
-				  		}
-				 	}
-			   	});
-		  	});
-		  	client.on('error', function(err) {
-			 	handleException(err);
-			 	closeClientConnection(client, connection);
-			 	resolve(null);
-			});
-		} catch (e) {
-			handleException(e);
-			closeClientConnection(client, connection);
-			resolve(null);
-		}
-
-		setTimeout(() => {
-			closeClientConnection(client, connection);
-			resolve(null);
-	  	}, networkTimeout);
-	});
-}
-
-function setDeviceVolume(address, volume) {
-	return new Promise(resolve => {
-		var deviceStatus, connection, receiver, exception;
-		var client = new Client();
-		var corrRequestId = getNewRequestId();
-		
-		debug('setDeviceVolume addr: %s', address, 'volu:', volume);
-	 	try {
-	 		client.connect(parseAddress(address), function() {
-			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
-
-			    connection.send({ type: 'CONNECT' });
-				receiver.send({ type: 'SET_VOLUME', volume: { level: volume }, requestId: corrRequestId });
-			    
-			    receiver.on('message', function(data, broadcast) {
-			    	if (data.requestId==corrRequestId) {
-					  	if(data.type == 'RECEIVER_STATUS') {
-					  		deviceStatus = data;
-					  		debug('setDeviceVolume recv: %s', JSON.stringify(deviceStatus));
-					  		resolve(JSON.stringify(deviceStatus));
-					 	}
-					}
-			   	});
-		  	});
-
-		  	client.on('error', function(err) {
-				handleException(err);
-				closeClientConnection(client, connection);
-			 	resolve(null);
-			});
-		} catch (e) {
-		 	handleException(err);
-			closeClientConnection(client, connection);
-			resolve(null);
-		}
-
-		setTimeout(() => {
-			closeClientConnection(client, connection);
-			resolve(null);
-	  	}, networkTimeout);
-	});
-}
-
-function setDeviceMuted(address, muted) { //TODO: Add param error if not boolean
-	return new Promise(resolve => {
-		var deviceStatus, connection, receiver, exception;
-		var client = new Client();
-		var corrRequestId = getNewRequestId();
-
-		debug('setDeviceMuted addr: %s', address, 'muted:', muted);
-	 	try {
-	 		client.connect(parseAddress(address), function() {
-			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
-
-			    connection.send({ type: 'CONNECT' });
-				receiver.send({ type: 'SET_VOLUME', volume: { muted: muted }, requestId: corrRequestId });
-			    
-			    receiver.on('message', function(data, broadcast) {
-				  	if(data.type == 'RECEIVER_STATUS') {
-				  		if (data.requestId==corrRequestId) {
-					  		deviceStatus = data;
-					  		debug('setDeviceMuted recv: %s', JSON.stringify(deviceStatus));
-					  		resolve(JSON.stringify(deviceStatus));
-					  	}
-				 	}
-			   	});
-		  	});
-		  	client.on('error', function(err) {
-			 	handleException(err);
-				closeClientConnection(client, connection);
-				resolve(null);
-			});
-	 	} catch (e) {
-		 	handleException(err);
-			closeClientConnection(client, connection);
-			resolve(null);
-		}
-
-	  	setTimeout(() => {
-			closeClientConnection(client, connection);
-			resolve(null);
-	  	}, networkTimeout);	
-	});
-}
-
-function getMediaStatus(address, sessionId) {
-	return new Promise(resolve => {
-		var mediaStatus, connection, receiver, media, exception;
-		var client = new Client();
-		var corrRequestId = getNewRequestId();
-
-		debug('getMediaStatus addr: %s', address, 'seId:', sessionId);
-		try {
-			client.connect(parseAddress(address), function() {
-			    connection = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-			    media = client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
-
-			    connection.send({ type: 'CONNECT', origin: {} });
-			    media.send({ type: 'GET_STATUS', requestId: corrRequestId });
-		 
-			    media.on('message', function(data, broadcast) {
-				  	if(data.type == 'MEDIA_STATUS') {
-				  		if (data.requestId==corrRequestId) {
-					  		mediaStatus = data;
-					  		debug('getMediaStatus recv: %s', JSON.stringify(mediaStatus));
-					  		resolve(JSON.stringify(mediaStatus));
-					  	}
-				 	}
-			   	});
-		  	});
-
-		 	client.on('error', function(err) {
-			 	handleException(err);
-				closeClient(client);
-				resolve(null);
-			});
-		} catch (e) {
-		 	handleException(err);
-			closeClient(client);
-			resolve(null);
-		}
-
-		setTimeout(() => {
-			closeClient(client);
-			resolve(null);
-	  	}, networkTimeout);
-	});
-}
-
-function setMediaPlaybackPause(address, sId, mediaSId) {
-	return new Promise(resolve => {
-		var mediaStatus, connection, receiver, media, exception;
-		var client = new Client();
-		var corrRequestId = getNewRequestId();
-
-		debug('setMediaPlaybackPause addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
-	 	try {
-	 		client.connect(parseAddress(address), function() {
-			    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-			    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
-
-			    connection.send({ type: 'CONNECT', origin: {} });
-			    media.send({ type: 'PAUSE', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
-			    
-			    media.on('message', function(data, broadcast) {
-				  	if(data.type == 'MEDIA_STATUS') {
-				  		if (data.requestId==corrRequestId||data.requestId==0) {
-				  			if (data.status[0].playerState=="PAUSED") {
-				  				mediaStatus = data;
-					  			debug('setMediaPlaybackPause recv: %s', JSON.stringify(mediaStatus));
-					  			resolve(JSON.stringify(mediaStatus));
-				  			}
-					  	}
-				 	}
-			   	});
-		  	});
-
-		  	client.on('error', function(err) {
-			 	handleException(err);
-				closeClient(client);
-				resolve(null);
-			});
-		  } catch (e) {
-		 	handleException(err);
-			closeClient(client);
-			resolve(null);
-		}
-		setTimeout(() => {
-			closeClient(client);
-			resolve(null);
-	  	}, networkTimeout);
-	});
-}
-
-function setMediaPlaybackPlay(address, sId, mediaSId) {
-	return new Promise(resolve => {
-		var mediaStatus, connection, receiver, media, exception;
-		var client = new Client();
-		var corrRequestId = getNewRequestId();
-
-		debug('setMediaPlaybackPlay addr: %s', address, 'seId:', sId, 'mSId:', mediaSId);
-	 	try {
-	 		client.connect(parseAddress(address), function() {
-			    connection = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-			    media = client.createChannel('sender-0', sId, 'urn:x-cast:com.google.cast.media', 'JSON');
-
-			    connection.send({ type: 'CONNECT', origin: {} });
-			    media.send({ type: 'PLAY', requestId: corrRequestId, mediaSessionId: mediaSId, sessionId: sId });
-			    
-			    media.on('message', function(data, broadcast) {
-				  	if(data.type == 'MEDIA_STATUS') {
-				  		if (data.requestId==corrRequestId||data.requestId==0) { //FIX for TuneIn's broken receiver app which always returns with requestId 0
-				  			if (data.status[0].playerState=="PLAYING") {
-						  		mediaStatus = data;
-						  		debug('setMediaPlaybackPlay recv: %s', JSON.stringify(mediaStatus));
-						  		resolve(JSON.stringify(mediaStatus));
-						  	}
-					  	}
-				 	}
-			   	});
-		  	});
-
-		 	client.on('error', function(err) {
-			 	handleException(err);
-				closeClient(client);
-				resolve(null);
-			});
-		 } catch (e) {
-		 	handleException(err);
-			closeClient(client);
-			resolve(null);
-		}
-		setTimeout(() => {
-			closeClient(client);
-			resolve(null);
-	  	}, networkTimeout);
-	});
-}
-
-function setDevicePlaybackStop(address, sId) {
-	return new Promise(resolve => {
-		var deviceStatus, connection, receiver, exception;
-		var client = new Client();
-		var corrRequestId = getNewRequestId();
-
-		debug('setDevicePlaybackStop addr: %s', address, 'seId:', sId);
-		try {
-			client.connect(parseAddress(address), function() {
-			    connection = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-			    receiver   = client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
-
-			    connection.send({ type: 'CONNECT' });
-			    receiver.send({ type: 'STOP', sessionId: sId, requestId: corrRequestId });
-
-			    receiver.on('message', function(data, broadcast) {
-				  	if(data.type == 'RECEIVER_STATUS') {
-				  		if (data.requestId==corrRequestId) {
-					  		deviceStatus = data;
-					  		debug('setDevicePlaybackStop recv: %s', JSON.stringify(deviceStatus));
-					  		resolve(JSON.stringify(deviceStatus));
-					  	}
-				 	}
-			   	});
-		  	});
-
-		  	client.on('error', function(err) {
-			 	handleException(err);
-				closeClientConnection(client, connection);
-				resolve(null);
-			});
-		} catch (e) {
-		 	handleException(err);
-			closeClientConnection(client, connection);
-			resolve(null);
-		}
-		setTimeout(() => {
-			closeClientConnection(client, connection);
-			resolve(null);
-	  	}, networkTimeout);
-	});
-}
-
-function setMediaPlayback(address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl, short) {
-	return new Promise(resolve => {
-		var castv2Client = new Castv2Client();
-
-	  	castv2Client.connect(parseAddress(address), function() {
-			castv2Client.launch(DefaultMediaReceiver, function(err, player) {
-		 		var media = {
-					contentId: mediaUrl,
-			        contentType: mediaType,
-			        streamType: mediaStreamType,
-
-			        metadata: {
-			         	type: 0,
-			          	metadataType: 0,
-			          	title: mediaTitle,
-			          	subtitle: mediaSubtitle,
-			          	images: [
-			            	{ url: mediaImageUrl }
-			          	]
-			        }        
-			   	};
-
-			  	player.load(media, { autoplay: true }, function(err, status) {
-			      	try{ 
-			      		debug('Media loaded playerState: ', status.playerState);
-			      		if (short==true) {
-			      			mediaStatus = JSON.stringify(status);
-			      			resolve(mediaStatus);
-			      		}
-			      	}
-			      	catch(e){
-			      		handleException(e);
-			      		try{player.close();}catch(e){handleException(e);}
-			      	}
-			    });
-
-		  		player.on('status', function(status) {
-		  			if (status) {
-		  				debug('status.playerState: ', status.playerState);
-				        if (status.playerState=='PLAYING') {
-				        	debug('status.playerState is PLAYING');
-				        	if (player.session.sessionId) {
-						  		console.log('Player has sessionId: ', player.session.sessionId);
-						  		if (short==false) {
-					      			getMediaStatus(address, player.session.sessionId).then(mediaStatus => {
-							    		debug('getMediaStatus return value: ', mediaStatus);
-							    		resolve(mediaStatus);
-									});
-					      		}
-						  	}
-				        }
-		  			}
-			   	});
-			  	
-
-			    setTimeout(() => {
-			    	closeClient(castv2Client);
-			    	resolve(null);
-			  	}, appLoadTimeout);
-		    });
-	 	});
-
-	  	castv2Client.on('error', function(err) {
-	  		handleException(err);
-	  		try{castv2Client.close();}catch(e){handleException(e);}
-	  		resolve(null);
-	  	});
-	});
-}
 
 function duplicateDevice(devices, device) {
-	if (device.deviceName && device.deviceName!=null && devices && devices!=null) {
+	if (device.id && device.id!=null && devices && devices!=null) {
 		for (var i = 0; i < devices.length; i++) {
-			if(devices[i].deviceName == device.deviceName) {
+			if(devices[i].id == device.id) {
 				return true;
 			}
 		}
@@ -764,22 +657,6 @@ function getId(id) {
 	} else {
 		debug('Is not id: ' + id);
 	}
-}
-
-function parseAddress(address){
-	ip=address.split(':')[0];
-	port=address.split(':')[1];
-
-	if (!port) {
-		port = 8009;
-	}
-
-	debug('IP: '+ip+' port: '+port);
-
-	return {
-      host: ip,
-      port: port
-    };
 }
 
 function getNewRequestId(){
@@ -816,31 +693,4 @@ function getParsedPackageJson(json) {
 		console.log('parsePackageJson, exception caught: ' + e);
 	}
 	return version;
-}
-
-function closeClientConnection(client, connection) {
-	closeConnection(connection);
-	closeClient(client);
-}
-
-function closeConnection(connection) {
-	debug('closing connection');
-	try {
-		connection.send({ type: 'CLOSE' });
-	} catch (e) {
-		handleException(e);
-	}
-}
-
-function closeClient(client) {
-	debug('closing client');
-	try {
-		client.close();
-	} catch (e) {
-		handleException(e);
-	}
-}
-
-function handleException(e) {
-	console.error('Exception caught: ' + e);
 }
