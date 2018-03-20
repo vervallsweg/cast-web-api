@@ -16,16 +16,26 @@ const querystring = require('querystring');
 var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
-var networkTimeout = 2000;
-var discoveryTimeout = 4000;
-var appLoadTimeout = 6000;
+var timeoutDiscovery = 4000;
 var thisVersion = pkg.version;
 
 var devicesDiscoverd = [];
 var devicesSubscribed = [];
 
-interpretArguments();
-createWebServer();
+startApi();
+
+function startApi() {
+	interpretArguments();
+	console.log('Discovering devices, please wait...');
+	getDevices()
+	.then(devices => {
+		console.log('... done!');
+		createWebServer();
+	})
+	.catch(errorMessage => {
+		console.log('Cannot discover devices, shutting down. Error message: '+ errorMessage);
+	})
+}
 
 //HANDLE ARGUMENTS
 function interpretArguments() {
@@ -39,17 +49,8 @@ function interpretArguments() {
 	if (args.port) {
 		port = args.port;
 	}
-	if (args.networkTimeout) {
-		networkTimeout = args.networkTimeout;
-	}
-	if (args.discoveryTimeout) {
-		discoveryTimeout = args.discoveryTimeout;
-	}
-	if (args.appLoadTimeout) {
-		appLoadTimeout = args.appLoadTimeout;
-	}
-	if (args.currentRequestId) {
-		currentRequestId = args.currentRequestId;
+	if (args.timeoutDiscovery) {
+		timeoutDiscovery = args.timeoutDiscovery;
 	}
 }
 
@@ -75,95 +76,144 @@ function createWebServer() {
 	const server = http.createServer((req, res) => {
 		var parsedUrl = url.parse(req.url, true);
 		var path = parsedUrl['pathname'].split('/');
-		res.setHeader('Content-Type', 'application/json; charset=utf-8');
+		var requestBuffer = '';
+		var requestData = null;
 
-		if (path[1]=="discover") {
-			getDevices()
-			.then(devices => {
-				res.statusCode = 200;
-				res.end(devices);
-			})
-			.catch(errorMessage => {
-				res.statusCode = 500;
-				res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
-			})
-		}
+		req.on('data', function (data) {
+            requestBuffer += data;
+        });
 
-		if (path[1]=="device") {
-			if (path[2]) {
-				getDeviceSafe(path[2])
-				.then(device => {
-					if (path[3]) {
-						console.log('PATH 3: ' + path[3]);
-						var result = {response:'error', error:'command unknown'};
-						if (path[3]=='play') {
-							result = getDevice(path[2]).setPlay();
-						}
-						if (path[3]=='pause') {
-							result = getDevice(path[2]).setPause();
-						}
-						if (path[3]=='stop') {
-							result = getDevice(path[2]).setStop();
-						}
-						if (path[3]=='mute') {
-							result = getDevice(path[2]).setMuted(true);
-						}
-						if (path[3]=='unmute') {
-							result = getDevice(path[2]).setMuted(false);
-						}
-						if (path[3]=='volume') {
-							if (path[4]) {
-								if ( parseInt(path[4])>=0 && parseInt(path[4])<=100) {
-									console.log( 'settingLevel to: ' + (parseInt(path[4])/100) );
-									result = getDevice(path[2]).setVolume( (parseInt(path[4])/100) );
+		req.on('end', function () {
+			requestData = requestBuffer;
+			debug(requestData);
+
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
+			if (path[1]=="discover") {
+				getDevices()
+				.then(devices => {
+					res.statusCode = 200;
+					res.end(devices);
+				})
+				.catch(errorMessage => {
+					res.statusCode = 500;
+					res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
+				})
+			}
+
+			if (path[1]=="device") {
+				if (path[2]) {
+					getDeviceSafe(path[2])
+					.then(device => {
+						if (path[3]) {
+							console.log('PATH 3: ' + path[3]);
+							var result = {response:'error', error:'command unknown'};
+							if (path[3]=='play') {
+								result = getDevice(path[2]).play();
+							}
+							if (path[3]=='pause') {
+								result = getDevice(path[2]).pause();
+							}
+							if (path[3]=='stop') {
+								result = getDevice(path[2]).stop();
+							}
+							if (path[3]=='mute') {
+								result = getDevice(path[2]).muted(true);
+							}
+							if (path[3]=='unmute') {
+								result = getDevice(path[2]).muted(false);
+							}
+							if (path[3]=='volume') {
+								if (path[4]) {
+									if ( parseInt(path[4])>=0 && parseInt(path[4])<=100) {
+										console.log( 'settingLevel to: ' + (parseInt(path[4])/100) );
+										result = getDevice(path[2]).volume( (parseInt(path[4])/100) );
+									} else {
+										result = {response:'error', error:'level unknown'};
+									}
 								} else {
 									result = {response:'error', error:'level unknown'};
 								}
-							} else {
-								result = {response:'error', error:'level unknown'};
 							}
-						}
-						if (path[3]=='subscribe') {
-							if (path[4]) {
-								console.log( 'subscribe to: ' + getRestOfPathArray(path, 4) );
-								result = { response:'ok' };
-								result = getDevice(path[2]).createSubscription( getRestOfPathArray(path, 4) );
-							} else {
-								result = {response:'error', error:'callback unknown'};
+							if (path[3]=='subscribe') {
+								if (path[4]) {
+									console.log( 'subscribe to: ' + getRestOfPathArray(path, 4) );
+									result = { response:'ok' };
+									result = getDevice(path[2]).createSubscription( getRestOfPathArray(path, 4) );
+								} else {
+									result = {response:'error', error:'callback unknown'};
+								}
 							}
-						}
-						if (path[3]=='unsubscribe') {
-							result = getDevice(path[2]).removeSubscription();
-						}
-						if (result=={response: 'ok'}) {
-							res.statusCode = 200;
+							if (path[3]=='unsubscribe') {
+								result = getDevice(path[2]).removeSubscription();
+							}
+							if (path[3]=='playMedia') {
+								console.log('requestData: '+requestData);
+								if (requestData) {
+									try {
+										var media = JSON.parse(requestData);
+										result = getDevice(path[2]).playMedia(media);
+									} catch (e) {
+										result = {response:'error', error: e};
+									}
+								} else {
+									result = {response:'error', error: 'post media unknown'};
+								}
+							}
+							if (result=={response: 'ok'}) {
+								res.statusCode = 200;
+							} else {
+								res.statusCode = 500;
+							}
+							res.end( JSON.stringify( result ) );
 						} else {
-							res.statusCode = 500;
+							res.statusCode = 200;
+							res.end( JSON.stringify( device.toString() ) );
 						}
-						res.end( JSON.stringify( result ) );
-					} else {
-						res.statusCode = 200;
-						res.end( JSON.stringify( device.toString() ) );
-					}
-				})
-				.catch(errorMessage => {
-					res.statusCode = 404;
-					res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
-				})
-			} else {
-				res.statusCode = 200;
-				res.end( JSON.stringify( getAllDevices() ) );
+					})
+					.catch(errorMessage => {
+						res.statusCode = 404;
+						res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
+					})
+				} else {
+					res.statusCode = 200;
+					res.end( JSON.stringify( getAllDevices() ) );
+				}
 			}
-		}
 
-		if (path[1]=="/config") {
-			//TODO
-		}
+			if (path[1]=="config") {
+				if (path[2]) {
+					if (path[2]=="timeoutDiscovery") {
+						if (path[3]) {
+							if ( parseInt(path[3]) ) {
+								timeoutDiscovery = parseInt(path[3]);
+							}
+						}
+						res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery} ) );
+					}
+					if (path[2]=="version") {
+						if (path[3]=="this") {
+							res.end( JSON.stringify( { version: thisVersion} ) );
+						}
+						if (path[3]=="latest") {
+							getLatestVersion()
+							.then(version => {
+								res.end( JSON.stringify( { version: version} ) );
+							})
+							.catch(errorMessage => {
+								res.statusCode = 500;
+								res.end( JSON.stringify( { response: error, error: errorMessage} ) );
+							})
+						}
+					}
+				}
+			}
 
-		if (path[1]=="") {
-			res.statusCode = 200;
-			res.end('cast-web-api version ' + thisVersion)
-		} 
+			if (path[1]=="") {
+				res.statusCode = 200;
+				res.end('cast-web-api version ' + thisVersion)
+			}
+		});
 	});
 
 	server.listen(port, hostname, () => {
@@ -326,7 +376,7 @@ function CastDevice(id, address) {
 		}
 	}
 
-	this.setVolume = function(targetLevel) {
+	this.volume = function(targetLevel) {
 		if (this.castConnectionReceiver.receiver) {
 			this.castConnectionReceiver.receiver.send({ type: 'SET_VOLUME', volume: { level: targetLevel }, requestId: getNewRequestId() });
 			return {response:'ok'};
@@ -335,7 +385,7 @@ function CastDevice(id, address) {
 		}
 	}
 
-	this.setMuted = function(isMuted) {
+	this.muted = function(isMuted) {
 		if (this.castConnectionReceiver.receiver) {
 			this.castConnectionReceiver.receiver.send({ type: 'SET_VOLUME', volume: { muted: isMuted }, requestId: getNewRequestId() });
 			return {response:'ok'};
@@ -344,7 +394,7 @@ function CastDevice(id, address) {
 		}
 	}
 
-	this.setPlay = function() {
+	this.play = function() {
 		if (this.castConnectionMedia) {
 			if (this.castConnectionMedia.media && this.castConnectionReceiver.sessionId && this.castConnectionMedia.mediaSessionId) {
 				this.castConnectionMedia.media.send({ type: 'PLAY', requestId: getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
@@ -357,7 +407,7 @@ function CastDevice(id, address) {
 		}
 	}
 
-	this.setPause = function() {
+	this.pause = function() {
 		if (this.castConnectionMedia) {
 			if (this.castConnectionMedia.media && this.castConnectionReceiver.sessionId && this.castConnectionMedia.mediaSessionId) {
 				this.castConnectionMedia.media.send({ type: 'PAUSE', requestId: getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
@@ -370,7 +420,7 @@ function CastDevice(id, address) {
 		}
 	}
 
-	this.setStop = function() {
+	this.stop = function() {
 		if (this.castConnectionReceiver.sessionId) {
 			this.castConnectionReceiver.receiver.send({ type: 'STOP', sessionId: this.castConnectionReceiver.sessionId, requestId: getNewRequestId() });
 			return {response:'ok'};
@@ -399,6 +449,11 @@ function CastDevice(id, address) {
 				this.event.emit('statusChange');
 			}
 		}
+	}
+
+	this.playMedia = function(media) {
+		playMediaCastDevice(this, media);
+		return {response:'ok'};
 	}
 }
 
@@ -558,6 +613,39 @@ function parseMediaStatusCastDevice(castDevice, mediaStatus) {
 	}
 }
 
+function playMediaCastDevice(castDevice, media) {
+	var castv2Client = new Castv2Client();
+	var fullMedia = {
+		contentId: media.mediaUrl,
+		contentType: media.contentType,
+		streamType: media.mediaStreamType,
+
+		metadata: {
+			type: 0,
+			metadataType: 0,
+			title: media.mediaTitle,
+			subtitle: media.mediaSubtitle,
+			images: [ { url: media.mediaImageUrl } ]
+		}
+	};
+	
+  	castv2Client.connect(castDevice.address, function() {
+		castv2Client.launch(DefaultMediaReceiver, function(err, player) {
+			player.load(fullMedia, { autoplay: true }, function(err, status) {
+				//body...
+		    });
+	    });
+ 	});
+
+ 	setTimeout(() => {
+		try{
+			castv2Client.close();
+		} catch(e) {
+			console.log('playMediaCastDevice castv2Client.close() error: '+ e );
+		}
+	}, 5000);
+}
+
 function createSubscription(castDevice, callback) {
 	castDevice.removeSubscription();
 	castDevice.callback = url.parse('http://'+callback);
@@ -669,10 +757,9 @@ function getDevices() {
 			debug('updateCounter: ' + updateCounter);
 			devicesDiscoverd = devices;
 			resolve(JSON.stringify(devices));
-	  	}, discoveryTimeout);
+	  	}, timeoutDiscovery);
 	});
 }
-
 
 function duplicateDevice(devices, device) {
 	if (device.id && device.id!=null && devices && devices!=null) {
@@ -721,28 +808,23 @@ function getNewRequestId(){
 }
 
 function getLatestVersion() {
-	return new Promise(resolve => {
+	return new Promise( function(resolve, reject) {
 		fetch('https://raw.githubusercontent.com/vervallsweg/cast-web-api/master/package.json')
 			.then(function(res) {
 				return res.json();
 			}).then(function(json) {
 				debug('getLatestVersion, json received: '+JSON.stringify(json));
-				resolve( getParsedPackageJson(json) );
+				try {
+					var version = json.version
+					debug('getLatestVersion, version: ' + version);
+					resolve(version);
+				} catch (e) {
+					reject(e);
+				}
 			});
 
 		setTimeout(() => {
-			resolve(null);
-		}, networkTimeout);
+			reject('request timeout');
+		}, 5000);
 	});
-}
-
-function getParsedPackageJson(json) {
-	var version;
-	try {
-		debug('getParsedPackageJson, version: ' + json.version);
-		return json.version;
-	} catch (e) {
-		console.log('parsePackageJson, exception caught: ' + e);
-	}
-	return version;
 }
