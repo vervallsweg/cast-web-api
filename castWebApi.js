@@ -9,6 +9,7 @@ const args = require('minimist')(process.argv.slice(2));
 const fetch = require('node-fetch');
 const os = require('os');
 
+var tts = require('google-tts-api');
 var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
@@ -241,7 +242,28 @@ function createWebServer() {
 				res.end('Parameter error');
 			}
 		}
-
+		else if (parsedUrl['pathname']=="/speak") {
+			res.statusCode = 200;
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
+			if (parsedUrl['query']['address'] && parsedUrl['query']['text'] && parsedUrl['query']['mediaType'] && parsedUrl['query']['mediaStreamType'] && parsedUrl['query']['mediaTitle'] && parsedUrl['query']['mediaSubtitle'] && parsedUrl['query']['mediaImageUrl']) {
+				tts(parsedUrl['query']['text'],'en-gb',1).then(
+					function (url) {
+					setMediaPlayback(parsedUrl['query']['address'], parsedUrl['query']['mediaType'], url, parsedUrl['query']['mediaStreamType'], parsedUrl['query']['mediaTitle'], parsedUrl['query']['mediaSubtitle'], parsedUrl['query']['mediaImageUrl']).then(mediaStatus => {
+						if (mediaStatus) {
+							res.statusCode = 200;
+							res.setHeader('Content-Type', 'application/json; charset=utf-8');
+							res.end(mediaStatus);
+						} else {
+							res.statusCode = 500;
+							res.end();
+						}
+					});
+				});
+			} else {
+				res.statusCode = 400;
+				res.end('Parameter error');
+			}
+		}
 		else if (parsedUrl['pathname']=="/config") {
 			res.statusCode = 200;
 			res.setHeader('Content-Type', 'application/json; charset=utf-8');
