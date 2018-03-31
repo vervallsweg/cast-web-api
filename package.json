@@ -18,7 +18,8 @@
     	"url": "*",
     	"minimist": "*",
     	"node-fetch": "*",
-    	"os": "*"
+    	"os": "*",
+        "google-tts-api": "*"
   	},
 	"repository": {
 		"type": "git",
