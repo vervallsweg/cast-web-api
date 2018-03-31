@@ -176,7 +176,7 @@ http://127.0.0.1/device/abc1234a/remove
 Requests with just the parameter return it's current value. If the request also includes a /value it will be changed.
 Returns a json object with parameter:value.
 ```
-http://127.0.0.1/config/timeoutDiscovery/			//Returns current value
+http://127.0.0.1/config/timeoutDiscovery/		//Returns current value
 http://127.0.0.1/config/timeoutDiscovery/6000		//Returns 6000 and sets timeoutDiscovery to 6000[ms]
 ```
 
@@ -196,7 +196,7 @@ Sets the interval for the API's automatic device discovery. This ensures that de
 API version you're currently running.
 
 ##### /version/latest
-Latest on GitHub available API version.
+Latest API version available on GitHub.
 
 ## Debugging
 cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
