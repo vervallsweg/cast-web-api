@@ -4,18 +4,17 @@ Web API for Google Cast enabled devices, based on the [node-castv2](https://gith
 This API is only intendend to be used on your local network **not for hosting on the public internet**.
 
 ## Installation
-Install cast-web-api as a command line utility. Check your permissions first!
-
 	$ npm install cast-web-api -g
 
 ## First steps
     $ cast-web-api
 
-The server runs on your network IP and port 3000 by default. If it cannot determine your ip it defaults to 127.0.0.1. Both parameters can be adjusted with the `--hostname` and  `--port` arguments:
+The server runs on your network IP:3000 by default. On error it defaults to 127.0.0.1. Adjustable via:
 
 	$ cast-web-api --hostname=192.168.0.11 --port=8080
 
-If you'd like to run the API in the background as a daemon [forever](https://github.com/foreverjs/forever "forever") is recommended
+## Run as daemon
+[Forever](https://github.com/foreverjs/forever "forever") is recommended:
 
 	$ npm install forever -g
 
@@ -199,6 +198,11 @@ API version you're currently running.
 Latest API version available on GitHub.
 
 ## Debugging
+Every log output follows this format: {time} {device id} {function name}: {message}. For easy differentiation between those components, device id is inverted in color and function name underlined. Info messages appear in your standard terminal color. Error messages in red, warning messages in red and server related messages in blue.
+```
+2018-03-31T18:27:09.508Z a90824f40764eb5df1fccc4f5cb95dd3 reconnectionManagement(): reconnecting
+```
+
 cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
 
     $ DEBUG=cast-web-api node (yourdirectory)/castWebApi.js
