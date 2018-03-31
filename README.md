@@ -1,9 +1,7 @@
 # cast-web-api
-Quick and dirty Node.js web API for Google Cast enabled devices.
+Web API for Google Cast enabled devices, based on the [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
 
-This simple web API is based on the awesome [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
-
-However my code is **verry badly written and experimental, not intendend for any production environment!**
+This API is only intendend to be used on your local network **not for hosting on the public internet**.
 
 ## Installation
 Install cast-web-api as a command line utility. Check your permissions first!
@@ -11,8 +9,6 @@ Install cast-web-api as a command line utility. Check your permissions first!
 	$ npm install cast-web-api -g
 
 ## First steps
-You can simply run the command and the web-api should be up and running!
-
     $ cast-web-api
 
 The server runs on your network IP and port 3000 by default. If it cannot determine your ip it defaults to 127.0.0.1. Both parameters can be adjusted with the `--hostname` and  `--port` arguments:
@@ -61,7 +57,7 @@ Every call uses HTTP. Only starting a new playback uses POST, everything else us
 After you ran any command on /device/{id} successfully it will be managed by the API. You can list all devices managed by the API with /device. The API will handle address changes and will try to reconnect to all managed devices if they become 'disconnected'
 
 ### /discover
-Returns a JSON array of devices found on the network. Recent changes make installation easier but *device discovery [unreliable](https://github.com/vervallsweg/cast-web-api/issues/35 "unreliable") sometimes*.
+Returns a JSON array of devices found on the network. The mdns packages makes installation easier but *device discovery [unreliable](https://github.com/vervallsweg/cast-web-api/issues/35 "unreliable") sometimes*.
 ``` 
 [
 	{
@@ -104,28 +100,46 @@ Please note that {a/b} refers to the possible values of a key and the brackets a
 
 #### /
 Returns a JSON array with device status objects of all devices that are/were connected to the API.
+```
+http://127.0.0.1/device/
+```
 
 #### /{device id}
 Returns the device status object of the specified device. This command also connects the device to the API. If no device with the specified id can be found on the network it returns a response object with an error message.
 The device will show up in / and reconnected automaticaly, after this request (or any request with a device id) is completed successfully.
+```
+http://127.0.0.1/device/abc1234a/
+```
 
 ##### /muted/{true/false}
 Returns a response object and (un-)mutes the device.
 ```
-http://{host}/setDeviceVolume?address={address}&volume={volume}
+http://127.0.0.1/device/abc1234a/muted/true
 ```
 
 ##### /volume/{level}
 Returns a response object and sets the volume on the device. Level is an int value between 0-100.
+```
+http://127.0.0.1/device/abc1234a/volume/25
+```
 
 ##### /play
 Returns a response object and continous playback on the device. If there's no playback on the device, or the receiver doesn't support playback control, it returns an error object.
+```
+http://127.0.0.1/device/abc1234a/play
+```
 
 ##### /pause
 Returns a response object and pauses playback on the device. If there's no playback on the device, or the receiver doesn't support playback control, it returns an error object.
+```
+http://127.0.0.1/device/abc1234a/pause
+```
 
 ##### /stop
 Returns a response object and stops playback on the device. If there's no playback on the device, or the receiver cannot be closed, it returns an error object.
+```
+http://127.0.0.1/device/abc1234a/stop
+```
 
 ##### /playMedia [HTTP POST]
 Returns a response object. Requires a JSON object with the media information in the request data. 
@@ -142,16 +156,29 @@ TODO: curl example
 
 ##### /subscribe/{callback address}
 Creates a subscription for the selected device. When the device's status object changes (i.e. volume/playback changes) the new status update is send to the callback address. For now it only supports http callbacks and only one per device. If you call this path again for the same device, with a different callback address, the old callback will be overwritten.
+```
+http://127.0.0.1/device/abc1234a/subscribe/127.0.0.2:8080
+```
 
 ##### /unsubscribe
 Removes all subscriptions from the selected device.
+```
+http://127.0.0.1/device/abc1234a/unsubscribe
+```
 
 ##### /remove
 Disconnects the selected device and it will no longer be managed by the API.
+```
+http://127.0.0.1/device/abc1234a/remove
+```
 
 #### /config
 Requests with just the parameter return it's current value. If the request also includes a /value it will be changed.
 Returns a json object with parameter:value.
+```
+http://127.0.0.1/config/timeoutDiscovery/			//Returns current value
+http://127.0.0.1/config/timeoutDiscovery/6000		//Returns 6000 and sets timeoutDiscovery to 6000[ms]
+```
 
 ##### /timeoutDiscovery/{value}
 Default: 4000[ms].
