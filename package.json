@@ -21,7 +21,8 @@
 		"url": "*",
 		"minimist": "*",
 		"node-fetch": "*",
-		"os": "*"
+		"os": "*",
+		"chalk": "*"
 	},
 	"repository": {
 		"type": "git",
