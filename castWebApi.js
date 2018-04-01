@@ -30,7 +30,7 @@ interpretArguments();
 if (!windows) {
 	startApi();
 } else {
-	console.log( process.argv[1].replace("\bin\cast-web-api", "") );
+	console.log( process.argv[1].substring(0, process.argv[1].length - 13) );
 }
 
 function startApi() {
