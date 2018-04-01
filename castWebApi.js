@@ -30,7 +30,7 @@ interpretArguments();
 if (!windows) {
 	startApi();
 } else {
-	console.log( process.argv[1].substring(0, process.argv[1].length - 13) );
+	console.log( process.argv[1].substring(0, process.argv[1].length - 17) );
 }
 
 function startApi() {
