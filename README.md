@@ -34,11 +34,11 @@ Adjust the command to pass parameters via `crontab -e`. The vanilla node version
 
 ### Windows
 
-	> where cast-web-api
+	> cast-web-api --windows
 
-Copy the result path till the npm folder. Then append 'node_modules\cast-web-api' to it. Then change to the new directory:
+Copy the result path and change directory to it:
 
-	> cd C:\Users\name\AppData\Roaming\npm\node_modules\cast-web-api\
+	> cd {path you just copied}
 
 Finally you can also use forever.
 

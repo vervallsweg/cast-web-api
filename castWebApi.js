@@ -21,14 +21,19 @@ var timeoutDiscovery = 4000;
 var thisVersion = pkg.version;
 var reconnectInterval = 300000;
 var discoveryInterval = 60000;
+var windows = false;
 
 var devicesDiscoverd = [];
 var devicesSubscribed = [];
 
-startApi();
+interpretArguments();
+if (!windows) {
+	startApi();
+} else {
+	console.log( process.argv[1].split("castWebApi.js")[0] );
+}
 
 function startApi() {
-	interpretArguments();
 	console.log('cast-web-api v'+thisVersion);
 	console.log('Discovering devices, please wait...');
 	getDevices()
@@ -64,6 +69,9 @@ function interpretArguments() {
 	}
 	if (args.discoveryInterval) {
 		discoveryInterval = args.discoveryInterval;
+	}
+	if (args.windows) {
+		windows = true;
 	}
 }
 
