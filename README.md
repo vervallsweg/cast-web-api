@@ -6,31 +6,49 @@ This simple web API is based on the awesome [node-castv2](https://github.com/thi
 However my code is **verry badly written and experimental, not intendend for any production environment!**
 
 ## Installation
-Clone the repo or download a zip version of it
+Install cast-web-api as a command line utility. Check your permissions first!
 
-    $ git clone https://github.com/vervallsweg/cast-web-api.git
-
-Make sure you're in the cloned/downloaded repo and install
-
-	$ npm install
+	$ npm install cast-web-api -g
 
 ## First steps
-You can simply call the script and the web-api should be up and running!
+You can simply run the command and the web-api should be up and running!
 
-    $ node (yourdirectory)/castWebApi.js
+    $ cast-web-api
 
-The server runs on your network ip and 3000. If it cannot determine your ip it defaults to 127.0.0.1. Both parameters can be adjusted with the --hostname --port arguments:
+The server runs on your network IP and port 3000 by default. If it cannot determine your ip it defaults to 127.0.0.1. Both parameters can be adjusted with the `--hostname` and  `--port` arguments:
 
-	$ node (yourdirectory)/castWebApi.js --hostname=192.168.0.11 --port=8080
+	$ cast-web-api --hostname=192.168.0.11 --port=8080
 
 If you'd like to run the API in the background as a daemon [forever](https://github.com/foreverjs/forever "forever") is recommended
 
 	$ npm install forever -g
 
-Running the script and setting the parameters is mostly unchanged:
+### Linux/OSX
 
-	$ forever start castWebApi.js
-	$ forever stop castWebApi.js
+	$ forever start `which cast-web-api`
+	$ forever stop `which cast-web-api`
+
+If you'd like to always run the API in the background even after reboots, you can use crontab.
+
+	$ # While using forever
+	$ (crontab -l 2>/dev/null; echo "@reboot `which forever` `which cast-web-api`")| crontab -
+	$ # While using vanilla node
+	$ (crontab -l 2>/dev/null; echo "@reboot `which node` `which cast-web-api` >> ~/cast-web-api.log")| crontab -
+
+Adjust the command to pass parameters via `crontab -e`. The vanilla node version will log output to `~/cast-web-api.log` e.g. `/home/yourname/cast-web-api.log`.
+
+### Windows
+
+	> where cast-web-api
+
+Copy the result path till the npm folder. Then append 'node_modules\cast-web-api' to it. Then change to the new directory:
+
+	> cd C:\Users\name\AppData\Roaming\npm\node_modules\cast-web-api\
+
+Finally you can also use forever.
+
+	> forever start castWebApi.js
+	> forever stop castWebApi.js
 
 ## Usage
 

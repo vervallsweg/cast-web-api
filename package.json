@@ -1,25 +1,28 @@
 {
 	"name" : "cast-web-api",
-	"version" : "0.2.3",
+	"version" : "0.3.0",
 	"author" : "Tobias Haerke",
 	"engines": {
-	  	"node": ">= 4.1.0"
+		"node": ">= 6.0.0"
 	},
 	"main": "castWebApi.js",
 	"scripts": {
-      	"cast-web-api": "node ./castWebApi.js"
+		"start": "node ./castWebApi.js"
    	},
+	"bin": {
+		"cast-web-api": "./bin/cast-web-api"
+	},
 	"dependencies": {
-    	"debug": "^2.1.1",
-    	"http": "*",
-    	"castv2": "*",
-    	"castv2-client": "*",
-    	"mdns-js": ">=0.5.3",
-    	"url": "*",
-    	"minimist": "*",
-    	"node-fetch": "*",
-    	"os": "*"
-  	},
+		"debug": "^2.1.1",
+		"http": "*",
+		"castv2": "*",
+		"castv2-client": "*",
+		"mdns-js": ">=0.5.3",
+		"url": "*",
+		"minimist": "*",
+		"node-fetch": "*",
+		"os": "*"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git://github.com/vervallsweg/cast-web-api.git"
