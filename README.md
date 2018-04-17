@@ -85,7 +85,8 @@ Every request without a device command returns a device status object with the f
 	"application": "Spotify",
 	"status": "{PLAYING/PAUSED/IDLE/BUFFERING}",
 	"title": "My song",
-	"subtitle": "Artist"
+	"subtitle": "Artist",
+	"image": "http://url.to/image"
 }
 ```
 Every request with a device command returns a simple JSON object with a response (response object).
@@ -140,6 +141,9 @@ Returns a response object and stops playback on the device. If there's no playba
 http://127.0.0.1/device/abc1234a/stop
 ```
 
+##### /image
+Proxies the image from the device's image url. Useful if your application can only access local content.
+
 ##### /playMedia [HTTP POST]
 Returns a response object. Requires a JSON object with the media information in the request data. 
 It uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember: always check device compatibility (formats, screen available) before casting your media to a device!
@@ -172,7 +176,15 @@ http://127.0.0.1/device/abc1234a/remove
 ```
 
 #### /config
-Requests with just the parameter return it's current value. If the request also includes a /value it will be changed.
+``` 
+{
+	parameter: value
+}
+```
+Returns all config parameters with the current value. 
+
+
+Requests with just the parameter specified return it's current value. If the request also includes a /value it will be changed.
 Returns a json object with parameter:value.
 ```
 http://127.0.0.1/config/timeoutDiscovery/		//Returns current value

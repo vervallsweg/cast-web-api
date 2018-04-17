@@ -156,6 +156,35 @@ function createWebServer() {
 									result = {response:'error', error:'level unknown'};
 								}
 							}
+							if (path[3]=='image') {
+								if ( getDevice(path[2]).status.image == '' ) {
+									var imgUrl = 'http://lh3.googleusercontent.com/LB5CRdhftEGo2emsHOyHz6NWSfLVD5NC45y6auOqYoyrv7BC5mdDm66vPDCEAJjcDA=w360';
+								} else {
+									var imgUrl = getDevice(path[2]).status.image;
+								}
+								var query = url.parse(imgUrl);
+
+								var options = {
+									hostname: query.hostname,
+									path: query.path
+								};
+
+								log('info', '/image/', 'options: '+ JSON.stringify(options) );
+								
+								result = {response: 'wait'};
+
+								var callback = function(response) {
+									if (response.statusCode === 200) {
+										res.setHeader('Content-Type', response.headers['content-type']);
+										res.statusCode = 200;
+										response.pipe(res);
+									} else {
+										res.statusCode = 500;
+										res.end( JSON.stringify( {response:'error', error:'cannot proxy image'} ) );
+									}
+								};
+								http.request(options, callback).end();
+							}
 							if (path[3]=='subscribe') {
 								if (path[4]) {
 									result = { response:'ok' };
@@ -183,12 +212,14 @@ function createWebServer() {
 								removeDevice(path[2]);
 								result = { response:'ok' };
 							}
-							if (result=={response: 'ok'}) {
-								res.statusCode = 200;
-							} else {
-								res.statusCode = 500;
+							if (result.response != 'wait' ) {
+								if (result=={response: 'ok'}) {
+									res.statusCode = 200;
+								} else {
+									res.statusCode = 500;
+								}
+								res.end( JSON.stringify( result ) );
 							}
-							res.end( JSON.stringify( result ) );
 						} else {
 							res.statusCode = 200;
 							res.end( JSON.stringify( device.toString() ) );
@@ -245,6 +276,8 @@ function createWebServer() {
 							})
 						}
 					}
+				} else {
+					res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery, reconnectInterval: reconnectInterval, discoveryInterval: discoveryInterval } ) );
 				}
 			}
 
@@ -409,7 +442,8 @@ function CastDevice(id, address) {
 		application: '',
 		status: '',
 		title: '',
-		subtitle: ''
+		subtitle: '',
+		image: ''
 	}
 
 	this.connect = function() {
@@ -441,7 +475,8 @@ function CastDevice(id, address) {
 			application: this.status.application,
 			status: this.status.status,
 			title: this.status.title,
-			subtitle: this.status.subtitle
+			subtitle: this.status.subtitle,
+			image: this.status.image
 		}
 	}
 
@@ -516,7 +551,7 @@ function CastDevice(id, address) {
 	}
 
 	this.setStatus = function(key, value) {
-		if (key=='volume' || key=='muted' || key=='application' || key=='status' || key=='title' || key=='subtitle') {
+		if (key=='volume' || key=='muted' || key=='application' || key=='status' || key=='title' || key=='subtitle' || key=='image') {
 			if (value == null) { value = '' };
 			if (this.status[key] != value) {
 				this.status[key] = value;
@@ -557,7 +592,12 @@ function connectReceiverCastDevice(castDevice) {
 
 		   	castDevice.castConnectionReceiver.heartBeatIntervall = setInterval(function() {
 				if (castDevice.castConnectionReceiver) {
-					castDevice.castConnectionReceiver.heartbeat.send({ type: 'PING' });
+					try {
+						castDevice.castConnectionReceiver.heartbeat.send({ type: 'PING' });
+					} catch (e) {
+						log('error', 'CastDevice.connect() castConnectionReceiver.heartBeatIntervall', 'exception: '+e, castDevice.id);
+					}
+					
 				}
 			}, 5000);
 		});
@@ -664,6 +704,7 @@ function disconnectMediaCastDevice(castDevice) {
 			castDevice.status.status = '';
 			castDevice.status.title = '';
 			castDevice.status.subtitle = '';
+			castDevice.status.image = '';
 			castDevice.event.emit('statusChange');
 			castDevice.castConnectionMedia = null;
 		}
@@ -725,6 +766,13 @@ function parseMediaStatusCastDevice(castDevice, mediaStatus) {
 						if(metadataType>=3 && metadataType<=4) {
 							castDevice.setStatus('title', mediaStatus.status[0].media.metadata.title);
 							castDevice.setStatus('subtitle', mediaStatus.status[0].media.metadata.artist);
+						}
+						if (metadataType>=0 && metadataType<4) {
+							if (mediaStatus.status[0].media.metadata.images) {
+								if (mediaStatus.status[0].media.metadata.images[0]) {
+									castDevice.setStatus('image', mediaStatus.status[0].media.metadata.images[0].url);
+								}
+							}
 						}
 					}
 				}
