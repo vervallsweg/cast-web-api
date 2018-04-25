@@ -1,7 +1,7 @@
 # cast-web-api
 Web API for Google Cast enabled devices, based on the [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
 
-This API is only intendend to be used on your local network **not for hosting on the public internet**.
+This API is only intended to be used on your local network **not for hosting on the public internet**.
 
 ## Installation
 	$ npm install cast-web-api -g
@@ -78,7 +78,7 @@ Every request without a device command returns a device status object with the f
 	"members": [ {ids of the member devices this group has} ]
 }
 ```
-Every request with a device command returns a simple JSON object with a response (response object). In addition to setting the HTTP response code to 200 (success), 404 (command unknown) or 500 (error occured).
+Every request with a device command returns a simple JSON object with a response (response object). In addition to setting the HTTP response code to 200 (success), 404 (command unknown) or 500 (error occurred).
 ```
 {
 	"response": "{ok/error}",
@@ -108,7 +108,7 @@ http://127.0.0.1/device/connected
 
 #### /{device id}
 Returns the device status object of the specified device. This command also connects the device to the API. If no device with the specified id was found on the network it returns a response object with an error message.
-The device will show up in / and reconnected automaticaly, after this request (or any request with a device id) is completed successfully.
+The device will show up in / and reconnected automatically, after this request (or any request with a device id) is completed successfully.
 ```
 http://127.0.0.1/device/abc1234a/
 ```
@@ -126,7 +126,7 @@ http://127.0.0.1/device/abc1234a/volume/25
 ```
 
 ##### /play
-Returns a response object and continous playback on the device. If there's no playback on the device, or the receiver doesn't support playback control, it returns an error object.
+Returns a response object and continuous playback on the device. If there's no playback on the device, or the receiver doesn't support playback control, it returns an error object.
 ```
 http://127.0.0.1/device/abc1234a/play
 ```
@@ -234,7 +234,7 @@ Sets the interval for the API's automatic device discovery. This ensures that de
 
 ##### /discoveryRuns/{value}
 Default: 4.
-Sets how often the API's automatic device discovery should discover devices per interval. Flaky device discovery is a problem especially for group managment. Sometimes device discovery doesn't return all groups, which breaks group playback detection. Running group discovery multiple times and merging the results ensures a more reliable group detection.
+Sets how often the API's automatic device discovery should discover devices per interval. Flaky device discovery is a problem especially for group management. Sometimes device discovery doesn't return all groups, which breaks group playback detection. Running group discovery multiple times and merging the results ensures a more reliable group detection.
 
 ##### /groupManagement/{true/false}
 Default: true.
@@ -255,13 +255,15 @@ Every log output follows this format: {time} {device id} {function name}: {messa
 2018-03-31T18:27:09.508Z a90824f40764eb5df1fccc4f5cb95dd3 reconnectionManagement(): reconnecting
 ```
 
-cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
+cast-web-api uses npm's debug package. Debugging can be enabled with the following command:
 
-    $ DEBUG=cast-web-api node (yourdirectory)/castWebApi.js
+    $ DEBUG=cast-web-api cast-web-api
 
 If you need further information you can enable debugging for the underlying castv2 module. You can either set the scope to castv2 or to everything:
 
-	$ DEBUG=* node (yourdirectory)/castWebApi.js
+    $ DEBUG=* cast-web-api
+
+Alternatively, you can replace `cast-web-api` with `node (yourdirectory)/castWebApi.js` when debugging a locally cloned repository.
 
 ## Further information
 [thibauts](https://github.com/thibauts "thibauts profile") wrote a great [protocol description](https://github.com/thibauts/node-castv2#protocol-description "protocol description"). I can only highly recommend reading it.
