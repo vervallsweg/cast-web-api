@@ -50,46 +50,33 @@ Finally you can also use forever.
 ### Basics
 Every call uses HTTP. Only starting a new playback uses POST, everything else uses GET.
 
-1. /disover all devices on the network
-2. /device/{id} for all the devices you want to connect to the API.
-
-After you ran any command on /device/{id} successfully it will be managed by the API. You can list all devices managed by the API with /device. The API will handle address changes and will try to reconnect to all managed devices if they become 'disconnected'
-
-### /discover
-Returns a JSON array of devices found on the network. The mdns packages makes installation easier but *device discovery [unreliable](https://github.com/vervallsweg/cast-web-api/issues/35 "unreliable") sometimes*.
-``` 
-[
-	{
-		"id": "abc1234a-...",
-		"name": "Living room TV",
-		"ip": "192.168.0.12",
-		"port": 8009
-	},
-	{
-		...
-	}
-]
-```
-
-    http://{host}/discover
-
+A device will be managed by the API, after you accessed it through /device/{id} or ran any command on it successfully. The API will discover devices automatically, handle address changes and will try to reconnect to all managed devices if they become 'disconnected'.
 
 ### /device
 Every request without a device command returns a device status object with the following format.
 ``` 
 {
 	"id": "abc1234a",
+	"name": "My Chromecast",
 	"connection": "{connected/disconnected}",
-	"volume": 10,
-	"muted": {true/false},
-	"application": "Spotify",
-	"status": "{PLAYING/PAUSED/IDLE/BUFFERING}",
-	"title": "My song",
-	"subtitle": "Artist",
-	"image": "http://url.to/image"
+	"address": {
+		"host": "192.168.43.21",
+		"port": "8009"
+	},
+	"status": {
+		"volume": 10,
+		"muted": {true/false},
+		"application": "Spotify",
+		"status": "{PLAYING/PAUSED/IDLE/BUFFERING}",
+		"title": "My song",
+		"subtitle": "Artist",
+		"image": "http://url.to/image"
+	},
+	"groups": [ {ids of the groups this device is part of} ],
+	"members": [ {ids of the member devices this group has} ]
 }
 ```
-Every request with a device command returns a simple JSON object with a response (response object).
+Every request with a device command returns a simple JSON object with a response (response object). In addition to setting the HTTP response code to 200 (success), 404 (command unknown) or 500 (error occured).
 ```
 {
 	"response": "{ok/error}",
@@ -104,8 +91,21 @@ Returns a JSON array with device status objects of all devices that are/were con
 http://127.0.0.1/device/
 ```
 
+#### /discover
+Manually starts device discovery. The currently used mdns packages makes installation easy but *device discovery [unreliable](https://github.com/vervallsweg/cast-web-api/issues/35 "unreliable") sometimes*. This is especially noticeable when using the API's group features. Audio groups can literally disappear because a discovery didn't return all the group devices. 
+
+```
+http://127.0.0.1/device/discover
+```
+
+#### /{connected/disconnected}
+Filters / for only connected/disconnected devices.
+```
+http://127.0.0.1/device/connected
+```
+
 #### /{device id}
-Returns the device status object of the specified device. This command also connects the device to the API. If no device with the specified id can be found on the network it returns a response object with an error message.
+Returns the device status object of the specified device. This command also connects the device to the API. If no device with the specified id was found on the network it returns a response object with an error message.
 The device will show up in / and reconnected automaticaly, after this request (or any request with a device id) is completed successfully.
 ```
 http://127.0.0.1/device/abc1234a/
@@ -145,9 +145,9 @@ http://127.0.0.1/device/abc1234a/stop
 Proxies the image from the device's image url. Useful if your application can only access local content.
 
 ##### /playMedia [HTTP POST]
-Returns a response object. Requires a JSON object with the media information in the request data. 
+Returns a response object. Requires a JSON array with the media information in the request data. 
 It uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember: always check device compatibility (formats, screen available) before casting your media to a device!
-- contentType: the Google Cast media type string, see: - [supported media](https://developers.google.com/cast/docs/media#media-type-strings "supported media"). Don't just use mp3 or mp4, the correct string from the doc is needed (e.g. audio/mp3).
+- mediaType: the Google Cast media type string, see: - [supported media](https://developers.google.com/cast/docs/media#media-type-strings "supported media"). Don't just use mp3 or mp4, the correct string from the doc is needed (e.g. audio/mp3).
 - mediaUrl: HTTP(S) url to your content
 - mediaStreamType: Stream type of media your media, see: - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
 - mediaTitle (->title)
@@ -197,7 +197,7 @@ Sets the time for the server to wait for all Cast devices on the network to repl
 
 ##### /reconnectInterval/{value}
 Default: 300000[ms].
-The amount of time after which the API attempts to reconnect to a device in /devices.
+The amount of time after which the API attempts to reconnect to a device in /device.
 
 ##### /discoveryInterval/{value}
 Default: 60000[ms].

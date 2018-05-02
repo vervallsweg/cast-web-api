@@ -23,8 +23,7 @@ var reconnectInterval = 300000;
 var discoveryInterval = 60000;
 var windows = false;
 
-var devicesDiscoverd = [];
-var devicesSubscribed = [];
+var devices = [];
 
 interpretArguments();
 if (!windows) {
@@ -36,11 +35,11 @@ if (!windows) {
 function startApi() {
 	console.log('cast-web-api v'+thisVersion);
 	console.log('Discovering devices, please wait...');
-	getDevices()
+	discover()
 	.then(devices => {
 		console.log('... done!');
 		setInterval(function() {
-			getDevices();
+			discover();
 		}, discoveryInterval);
 		createWebServer();
 	})
@@ -87,7 +86,6 @@ function getNetworkIp() {
 			}
 		}
 	}
-
 	log('debug', 'getNetworkIp()', 'addresses: ' + addresses);
 	return addresses[0];
 }
@@ -110,128 +108,141 @@ function createWebServer() {
 
 			res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
-			if (path[1]=="discover") {
-				getDevices()
-				.then(devices => {
-					res.statusCode = 200;
-					res.end(devices);
-				})
-				.catch(errorMessage => {
-					res.statusCode = 500;
-					res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
-				})
-			}
-
 			if (path[1]=="device") {
 				if (path[2]) {
-					getDeviceSafe(path[2])
-					.then(device => {
-						if (path[3]) {
-							log('debug-server', 'path[3]', path[3]);
-							var result = {response:'error', error:'command unknown'};
-							if (path[3]=='play') {
-								result = getDevice(path[2]).play();
-							}
-							if (path[3]=='pause') {
-								result = getDevice(path[2]).pause();
-							}
-							if (path[3]=='stop') {
-								result = getDevice(path[2]).stop();
-							}
-							if (path[3]=='mute') {
-								result = getDevice(path[2]).muted(true);
-							}
-							if (path[3]=='unmute') {
-								result = getDevice(path[2]).muted(false);
-							}
-							if (path[3]=='volume') {
-								if (path[4]) {
-									if ( parseInt(path[4])>=0 && parseInt(path[4])<=100) {
-										log('debug-server', 'path[4] targetLevel', (parseInt(path[4])/100) );
-										result = getDevice(path[2]).volume( (parseInt(path[4])/100) );
+					if (path[2] == 'discover') {
+						discover();
+						res.end( JSON.stringify( {response: 'ok'} ) );
+					}
+					if (path[2] == 'connected') {
+						res.statusCode = 200;
+						res.end( JSON.stringify( getDevices('connected') ) );
+					}
+					if (path[2] == 'disconnected') {
+						res.statusCode = 200;
+						res.end( JSON.stringify( getDevices('disconnected') ) );
+					} else {
+						getDeviceConnected(path[2])
+						.then(device => {
+							if (path[3]) {
+								log('debug-server', 'path[3]', path[3]);
+								var result = {response:'error', error:'command unknown'};
+								if (path[3]=='play') {
+									result = getDevice(path[2]).play();
+								}
+								if (path[3]=='pause') {
+									result = getDevice(path[2]).pause();
+								}
+								if (path[3]=='stop') {
+									result = getDevice(path[2]).stop();
+								}
+								if (path[3]=='muted') {
+									if (path[4]) {
+										if (path[4]=='true') {
+											result = getDevice(path[2]).muted(true);
+										}
+										if (path[4]=='false') {
+											result = getDevice(path[2]).muted(false);
+										}
+									} else {
+										result = {response:'error', error:'true/false unknown'};
+									}
+								}
+								if (path[3]=='volume') {
+									if (path[4]) {
+										if ( parseInt(path[4])>=0 && parseInt(path[4])<=100) {
+											log('debug-server', 'path[4] targetLevel', (parseInt(path[4])/100) );
+											result = getDevice(path[2]).volume( (parseInt(path[4])/100) );
+										} else {
+											result = {response:'error', error:'level unknown'};
+										}
 									} else {
 										result = {response:'error', error:'level unknown'};
 									}
-								} else {
-									result = {response:'error', error:'level unknown'};
 								}
-							}
-							if (path[3]=='image') {
-								if ( getDevice(path[2]).status.image == '' ) {
-									var imgUrl = 'http://lh3.googleusercontent.com/LB5CRdhftEGo2emsHOyHz6NWSfLVD5NC45y6auOqYoyrv7BC5mdDm66vPDCEAJjcDA=w360';
-								} else {
-									var imgUrl = getDevice(path[2]).status.image;
+								if (path[3]=='image') {
+									if ( getDevice(path[2]).status.image == '' ) {
+										var imgUrl = 'http://lh3.googleusercontent.com/LB5CRdhftEGo2emsHOyHz6NWSfLVD5NC45y6auOqYoyrv7BC5mdDm66vPDCEAJjcDA=w360';
+									} else {
+										var imgUrl = getDevice(path[2]).status.image;
+									}
+									var query = url.parse(imgUrl);
+
+									var options = {
+										hostname: query.hostname,
+										path: query.path
+									};
+
+									log('info', '/image/', 'options: '+ JSON.stringify(options) );
+									
+									result = {response: 'wait'};
+
+									var callback = function(response) {
+										if (response.statusCode === 200) {
+											res.setHeader('Content-Type', response.headers['content-type']);
+											res.statusCode = 200;
+											response.pipe(res);
+										} else {
+											res.statusCode = 500;
+											res.end( JSON.stringify( {response:'error', error:'cannot proxy image'} ) );
+										}
+									};
+									http.request(options, callback).end();
 								}
-								var query = url.parse(imgUrl);
-
-								var options = {
-									hostname: query.hostname,
-									path: query.path
-								};
-
-								log('info', '/image/', 'options: '+ JSON.stringify(options) );
-								
-								result = {response: 'wait'};
-
-								var callback = function(response) {
-									if (response.statusCode === 200) {
-										res.setHeader('Content-Type', response.headers['content-type']);
+								if (path[3]=='subscribe') {
+									if (path[4]) {
+										result = { response:'ok' };
+										result = getDevice(path[2]).createSubscription( getRestOfPathArray(path, 4) );
+									} else {
+										result = {response:'error', error:'callback unknown'};
+									}
+								}
+								if (path[3]=='unsubscribe') {
+									result = getDevice(path[2]).removeSubscription();
+								}
+								if (path[3]=='playMedia') {
+									log('info', 'playMedia()', 'requestData: '+ requestData );
+									if (requestData) {
+										try {
+											var media = JSON.parse(requestData);
+											result = getDevice(path[2]).playMedia(media);
+											//result = getDevice(path[2]).playMedia();
+										} catch (e) {
+											result = {response:'error', error: e};
+										}
+									} else {
+										result = {response:'error', error: 'post media unknown'};
+									}
+								}
+								if (path[3]=='disconnect') {
+									getDevice(path[2]).disconnect();
+									result = { response:'ok' };
+								}
+								if (path[3]=='remove') {
+									removeDevice(path[2]);
+									result = { response:'ok' };
+								}
+								if (result.response != 'wait' ) {
+									if (result.response == 'ok') {
 										res.statusCode = 200;
-										response.pipe(res);
 									} else {
 										res.statusCode = 500;
-										res.end( JSON.stringify( {response:'error', error:'cannot proxy image'} ) );
 									}
-								};
-								http.request(options, callback).end();
-							}
-							if (path[3]=='subscribe') {
-								if (path[4]) {
-									result = { response:'ok' };
-									result = getDevice(path[2]).createSubscription( getRestOfPathArray(path, 4) );
-								} else {
-									result = {response:'error', error:'callback unknown'};
+									res.end( JSON.stringify( result ) );
 								}
+							} else {
+								res.statusCode = 200;
+								res.end( JSON.stringify( device.toString() ) );
 							}
-							if (path[3]=='unsubscribe') {
-								result = getDevice(path[2]).removeSubscription();
-							}
-							if (path[3]=='playMedia') {
-								if (requestData) {
-									try {
-										var media = JSON.parse(requestData);
-										result = getDevice(path[2]).playMedia(media);
-									} catch (e) {
-										result = {response:'error', error: e};
-									}
-								} else {
-									result = {response:'error', error: 'post media unknown'};
-								}
-							}
-							if (path[3]=='remove') {
-								removeDevice(path[2]);
-								result = { response:'ok' };
-							}
-							if (result.response != 'wait' ) {
-								if (result=={response: 'ok'}) {
-									res.statusCode = 200;
-								} else {
-									res.statusCode = 500;
-								}
-								res.end( JSON.stringify( result ) );
-							}
-						} else {
-							res.statusCode = 200;
-							res.end( JSON.stringify( device.toString() ) );
-						}
-					})
-					.catch(errorMessage => {
-						res.statusCode = 404;
-						res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
-					})
+						})
+						.catch(errorMessage => {
+							res.statusCode = 404;
+							res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
+						})
+					}
 				} else {
 					res.statusCode = 200;
-					res.end( JSON.stringify( getAllDevices() ) );
+					res.end( JSON.stringify( getDevices('all') ) );
 				}
 			}
 
@@ -281,15 +292,15 @@ function createWebServer() {
 				}
 			}
 
-			if (path[1]=="dump") {
+			if (path[1]=="memdump") {
 				res.statusCode = 200;
-				log( 'server', 'memory dump', util.inspect(devicesSubscribed) );
+				log( 'server', 'memory dump', util.inspect(devices) );
 				res.end('ok');
 			}
 
 			if (path[1]=="") {
 				res.statusCode = 200;
-				res.end('cast-web-api v' + thisVersion)
+				res.end('{ "cast-web-api" : "v' + thisVersion + '" }')
 			}
 		});
 	});
@@ -305,66 +316,9 @@ function createWebServer() {
 	});
 }
 
-function createDevice(id) {
-	return new Promise( function(resolve, reject) {
-		if ( !deviceExists(id) ) {
-			getDeviceAddress(id)
-			.then(returnAddress => {
-				var castDevice = new CastDevice(id, returnAddress);
-				castDevice.connect();
-				devicesSubscribed.push(castDevice);
-				resolve(true);
-			})
-			.catch(error => {
-				reject(error);
-			})
-		} else {
-			resolve(true);
-		}
-	});
-}
-
-function getDeviceAddress(id) {
-	return new Promise( function(resolve, reject) {
-
-		log('debug', 'getDeviceAddress()', '', id);
-		if ( getDeviceAddressDevicesDiscoverd(id) ) {
-			log('debug', 'getDeviceAddress()', 'address found on try 1', id);
-			resolve( getDeviceAddressDevicesDiscoverd(id) );
-		} else {
-			log('debug', 'getDeviceAddress()', 'retry', id);
-			getDevices()
-			.then(devices => {
-				if ( getDeviceAddressDevicesDiscoverd(id) ) {
-					log('debug', 'getDeviceAddress()', 'address found on try 2', id);
-					resolve( getDeviceAddressDevicesDiscoverd(id) );
-				} else {
-					log('debug-warn', 'getDeviceAddress()', 'address NOT found on try 2', id);
-					reject('Device not found.');
-				}
-			})
-			.catch(error => {
-				log('debug-error', 'getDeviceAddress()', 'getDevices() error: '+ error, id);
-				reject(error);
-			})
-		}
-	});
-}
-
-function getDeviceAddressDevicesDiscoverd(id) {
-	var address = null;
-	devicesDiscoverd.forEach(function(element) {
-		if (element.id == id) {
-			address = { host: element.ip, port: element.port };
-			log('debug', 'getDeviceAddressDevicesDiscoverd()', 'found host: '+address.host + ', port: '+address.port, id);
-		}
-	});
-	return address;
-}
-
 function deviceExists(id) {
 	var exists = false;
-	devicesSubscribed.forEach(function(element) {
+	devices.forEach(function(element) {
 		if (element.id == id) {
 			exists = true;
 		}
@@ -374,7 +328,7 @@ function deviceExists(id) {
 
 function getDevice(id) {
 	var returnElement = null;
-	devicesSubscribed.forEach(function(element) {
+	devices.forEach(function(element) {
 		if (element.id == id) {
 			returnElement = element;
 		}
@@ -382,21 +336,37 @@ function getDevice(id) {
 	return returnElement;
 }
 
-function getDeviceSafe(id){
+function getDevices(connection) {
+	var allDevices = [];
+	devices.forEach(function(element) {
+		if (connection == 'all') {
+			allDevices.push( element.toString() );
+		} else {
+			if (element.link == connection) {
+				allDevices.push( element.toString() );
+			}
+		}
+	});
+	return allDevices;
+}
+
+function getDeviceConnected(id){
 	return new Promise( function(resolve, reject) {
 		if ( getDevice(id) ) {
-			resolve( getDevice(id) );
-		} else {
-			createDevice(id)
-			.then(created => {
+			if ( getDevice(id).link == 'connected' ) {
+				resolve( getDevice(id) );
+			} else {
+				getDevice(id).connect();
+
 				getDevice(id).event.once('linkChanged', function() {
-					log('debug', 'createDevice()', 'once linkChanged: ' + getDevice(id).link, id);
+					log('debug', 'getDeviceConnected()', 'once linkChanged: ' + getDevice(id).link, id);
 					resolve( getDevice(id) );
 				});
-			})
-			.catch(error => {
-				reject(error);
-			})
+				//TODO: maybe set timeout
+			}
+			
+		} else {
+			reject("Device doesn't exist");
 		}
 	});
 }
@@ -408,31 +378,24 @@ function removeDevice(id) {
 
 		getDevice(id).disconnect();
 
-		devicesSubscribed.forEach(function(element, index) {
+		devices.forEach(function(element, index) {
 			if (element.id == id) {
 				targetIndex = index;
 			}
 		});
 	
 		if (targetIndex!=null) {
-			devicesSubscribed.splice(targetIndex, 1)
+			devices.splice(targetIndex, 1)
 		}
 	}
 }
 
-function getAllDevices() {
-	var devices = [];
-	devicesSubscribed.forEach(function(element) {
-		devices.push( element.toString() );
-	});
-	return devices;
-}
-
-function CastDevice(id, address) {
+function CastDevice(id, address, name) {
 	this.id = id;
 	this.address = address;
+	this.name = name;
 	this.event = new events.EventEmitter();
-	this.link;
+	this.link = 'disconnected';
 	this.reconnectInterval;
 	this.castConnectionReceiver;
 	this.castConnectionMedia;
@@ -469,14 +432,12 @@ function CastDevice(id, address) {
 	this.toString = function() {
 		return {
 			id: this.id,
+			name: this.name,
 			connection: this.link,
-			volume: this.status.volume,
-			muted: this.status.muted,
-			application: this.status.application,
-			status: this.status.status,
-			title: this.status.title,
-			subtitle: this.status.subtitle,
-			image: this.status.image
+			address: this.address,
+			status: this.status,
+			groups: this.groups,
+			members: this.members
 		}
 	}
 
@@ -544,6 +505,7 @@ function CastDevice(id, address) {
 	}
 
 	this.removeSubscription = function() {
+		log('info', 'CastDevice.removeSubscription()', '', this.id);
 		this.event.removeAllListeners('statusChange');
 		this.event.removeAllListeners('linkChanged');
 		this.callback = null;
@@ -565,7 +527,7 @@ function CastDevice(id, address) {
 		return {response:'ok'};
 	}
 
-	reconnectionManagementInit(this);
+	//reconnectionManagementInit(this); TODO: Doesnt work if called on device creation without .connect()
 }
 
 function connectReceiverCastDevice(castDevice) {
@@ -596,6 +558,7 @@ function connectReceiverCastDevice(castDevice) {
 						castDevice.castConnectionReceiver.heartbeat.send({ type: 'PING' });
 					} catch (e) {
 						log('error', 'CastDevice.connect() castConnectionReceiver.heartBeatIntervall', 'exception: '+e, castDevice.id);
+						castDevice.disconnect(); //TODO:
 					}
 					
 				}
@@ -630,7 +593,7 @@ function disconnectReceiverCastDevice(castDevice) {
 }
 
 function reconnectionManagementInit(castDevice) {
-	log('debug', 'reconnectionManagementInit()', '', castDevice.id);
+	log('info', 'reconnectionManagementInit()', '', castDevice.id);
 
 	castDevice.event.on('linkChanged', function() {
 		reconnectionManagement(castDevice);
@@ -796,28 +759,42 @@ function playMediaCastDevice(castDevice, media) {
 		log('info', 'CastDevice.playMedia()', 'media: ' + JSON.stringify(media), castDevice.id);
 
 		var castv2Client = new Castv2Client();
-		var fullMedia = {
-			contentId: media.mediaUrl,
-			contentType: media.contentType,
-			streamType: media.mediaStreamType,
+		var mediaList = [];
 
-			metadata: {
-				type: 0,
-				metadataType: 0,
-				title: media.mediaTitle,
-				subtitle: media.mediaSubtitle,
-				images: [ { url: media.mediaImageUrl } ]
-			}
-		};
+		media.forEach(function(element, index) {
+			var mediaElement =  {
+				autoplay : true,
+				preloadTime : 5,
+				activeTrackIds : [],
+				//playbackDuration: 4,
+				//startTime : 1,
+				media: {
+					contentId: element.mediaUrl,
+					contentType: element.mediaType,
+					streamType: element.mediaStreamType,
+					metadata: {
+						type: 0,
+						metadataType: 0,
+						title: element.mediaTitle,
+						subtitle: element.mediaSubtitle,
+						images: [ { url: element.mediaImageUrl } ]
+					}
+				}
+			};
+			log('info', 'CastDevice.playMedia()', 'mediaElement: ' + JSON.stringify(mediaElement), castDevice.id);
+			mediaList.push(mediaElement);
+		});
+
+		log('info', 'CastDevice.playMedia()', 'mediaList: ' + JSON.stringify(mediaList), castDevice.id);
 		
 	  	castv2Client.connect(castDevice.address, function() {
 			castv2Client.launch(DefaultMediaReceiver, function(err, player) {
-				player.load(fullMedia, { autoplay: true }, function(err, status) {
-					//body...
-			    });
+				player.queueLoad(mediaList, {startIndex:0, repeatMode: "REPEAT_OFF"}, function(err, status) {
+					log('info', 'CastDevice.playMedia()', 'loaded queue: ' + status, castDevice.id);
+				});
 		    });
 	 	});
-
+	  	//TODO: doesnt callback to subs, empties castDevice.event and castDevice.callback = null -> apparently works...
 	 	setTimeout(() => {
 			try{
 				castv2Client.close();
@@ -895,12 +872,17 @@ function getRestOfPathArray(pathArray, start) {
 	}
 }
 
-//GOOGLE CAST FUNCTIONS
-function getDevices() {
+//GOOGLE CAST FUNCTIONS 'googlecast' 'googlezone'
+function discover(target) {
+	var both = false;
+	if (!target) {
+		target = 'googlecast';
+		both = true;
+	}
 	return new Promise( function(resolve, reject) {
 		var updateCounter=0;
-		var devices = [];
-		var browser = mdns.createBrowser(mdns.tcp('googlecast'));
+		var discovered = [];
+		var browser = mdns.createBrowser(mdns.tcp(target));
 		var exception;
 
 		try {
@@ -911,22 +893,39 @@ function getDevices() {
 			browser.on('update', function(service){
 				try {
 					updateCounter++;
-					log('debug', 'getDevices()', 'update received, service: ' + JSON.stringify(service));
-					var currentDevice = {
-						id: getId(service.txt[0]),
-						name: getFriendlyName(service.txt),
-						ip: service.addresses[0],
-						port: service.port
+					log('debug', 'discover()', 'update received, service: ' + JSON.stringify(service));
+					if (target=='googlecast' && service.type[0].name==target) {
+						var currentDevice = {
+							id: getId(service.txt[0]),
+							name: getFriendlyName(service.txt),
+								address: {
+									host: service.addresses[0],
+									port: service.port
+							}
+						}
+				  		if (!duplicateDevice(discovered, currentDevice) && currentDevice.name!=null ) {
+				  			log('debug', 'discover()', 'found device: '+ JSON.stringify(currentDevice));
+				  			discovered.push(currentDevice);
+				  			//updateExistingCastDeviceAddress(currentDevice);
+
+				  			if ( !deviceExists(currentDevice.id) ) {
+				  				log('info', 'discover()', 'added device name: '+ currentDevice.name +', address: '+ JSON.stringify(currentDevice.address), currentDevice.id);
+				  				devices.push( new CastDevice( currentDevice.id, currentDevice.address, currentDevice.name ) ); //TODO: addDevice
+				  			}
+				  		} else {
+				  			log('debug', 'discover()', 'duplicate, googlezone device or empy name: ' + JSON.stringify(currentDevice));
+				  		}
 					}
-			  		if (!duplicateDevice(devices, currentDevice)&&service.type[0].name!='googlezone') {
-			  			devices.push(currentDevice);
-			  			updateExistingCastDeviceAddress(currentDevice);
-			  			log('debug', 'getDevices()', 'added device: '+ JSON.stringify(currentDevice));
-			  		} else {
-			  			log('debug', 'getDevices()', 'duplicat or googlezone device: ' + JSON.stringify(currentDevice));
-			  		}
+					if (target=='googlezone' && service.type[0].name==target) {
+						var currentGroupMembership = {
+							id: getId(service.txt[0]).replace(/-/g, ''),
+							groupMemberships: getGroupIds(service.txt)
+						}
+						log('debug', 'discover()', 'found googlezone: ' + JSON.stringify(currentGroupMembership) );
+						discovered.push(currentGroupMembership);
+					}
 			  	} catch (e) {
-					log('error', 'getDevices()', 'exception while prcessing service: '+e);
+					log('error', 'discover()', 'exception while prcessing service: '+e);
 				}
 			});
 		} catch (e) {
@@ -939,9 +938,20 @@ function getDevices() {
 			} catch (e) {
 				reject('Exception caught: ' + e)
 			}
-			log('debug', 'getDevices()', 'updateCounter: ' + updateCounter);
-			devicesDiscoverd = devices;
-			resolve(JSON.stringify(devices));
+			log('debug', 'discover()', 'updateCounter: ' + updateCounter);
+			if (target == 'googlezone') {
+				matchGoogleZoneMembers(discovered);
+			}
+			if (both) {
+				log('debug', 'discover()', 'both true, starting googlezone');
+				discover('googlezone')
+				.then(groups => {
+					log('debug', 'discover()', 'both true, googlezone done');
+					resolve(JSON.stringify(discovered));
+				})
+			} else {
+				resolve(JSON.stringify(discovered));
+			}
 	  	}, timeoutDiscovery);
 	});
 }
@@ -961,6 +971,84 @@ function updateExistingCastDeviceAddress(discoveredDevice) {
 				castDevice.address.port = discoveredDevice.port;
 			});
 		}
+	}
+}
+
+function matchGoogleZoneMembers(discoveredZones) {
+	log( 'debug', 'matchGoogleZoneMembers()', 'discoveredZones: ' + JSON.stringify(discoveredZones) );
+	try {
+		//add .groups to device
+		discoveredZones.forEach(function(element) {
+			if (element.id) {
+				log( 'debug', 'matchGoogleZoneMembers()', 'groupMemberships: ' + element.groupMemberships, element.id );
+				if ( deviceExists(element.id) ) {
+					log( 'info', 'matchGoogleZoneMembers()', 'device exists, adding groupMemberships: ' + element.groupMemberships, element.id );
+					getDevice(element.id).groups = element.groupMemberships;
+					//TODO: castDevice.setMembers()
+				} else {
+					log( 'debug', 'matchGoogleZoneMembers()', 'device doesnt exist: ' + deviceExists(element.id), element.id );
+					
+				}
+			}
+		});
+		//remove old .groups from devices
+		devices.forEach(function(device) {
+			var isDiscoveredZone = false;
+			discoveredZones.forEach(function(zone) {
+				if (device.id == zone.id) {
+					isDiscoveredZone = true;
+				}
+			});
+			if (!isDiscoveredZone) {
+				log( 'debug', 'matchGoogleZoneMembers()', 'isDiscoveredZone false, removing .groups', device.id );
+				delete getDevice(device.id).groups
+			}
+		});
+		//reverse sync for members
+		var members = [];
+		devices.forEach(function(device) {
+			if (device.groups) {
+				device.groups.forEach(function(group) {
+					var append = false;
+					var thisMember = {
+						id: group,
+						member: [device.id]
+					};
+
+					members.forEach(function(member) {
+						if (member.id == thisMember.id) {
+							member.member.push(thisMember.member[0]);
+							append = true;
+						}
+					});
+
+					if (!append) {
+						members.push(thisMember);
+					}
+				});
+			}
+		});
+		log( 'debug', 'matchGoogleZoneMembers()', 'members: '+JSON.stringify(members) );
+		members.forEach(function(member) {
+			if ( deviceExists(member.id) ) {
+				getDevice(member.id).members = member.member;
+			}
+		});
+		//remove old .members from devices
+		devices.forEach(function(device) {
+			var isDiscoveredMember = false;
+			members.forEach(function(member) {
+				if (device.id == member.id) {
+					isDiscoveredMember = true;
+				}
+			});
+			if (!isDiscoveredMember) {
+				log( 'debug', 'matchGoogleZoneMembers()', 'isDiscoveredMember false, removing .members', device.id );
+				delete getDevice(device.id).members
+			}
+		});
+	} catch (e) {
+		log( 'error', 'matchGoogleZoneMembers()', 'error while matching zones: ' + e );
 	}
 }
 
@@ -999,6 +1087,24 @@ function getId(id) {
 	} else {
 		log('debug', 'getId()', 'is not id: ' + id);
 	}
+}
+
+function getGroupIds(serviceTxt) {
+	var groupIds = [];
+	serviceTxt.forEach(function(element) {
+		try {
+			if (!element.includes('id') && !element.includes('__common_time__')) {
+				var groupId = element.split('|', 1)[0].split('=', 1)[0]
+				log( 'debug', 'getGroupIds()', 'memberId: ' +  groupId);
+				if (groupId && groupId != '') {
+					groupIds.push(groupId);
+				}
+			}
+		} catch (e) {
+			log( 'error', 'getGroupIds()', 'cannot get member, error: ' + e );
+		}
+	});
+	return groupIds;
 }
 
 function getNewRequestId(){
