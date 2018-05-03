@@ -214,6 +214,21 @@ function createWebServer() {
 										result = {response:'error', error: 'post media unknown'};
 									}
 								}
+								if (path[3]=='playMediaGet') {
+									log('info', 'playMediaGet()', 'path: '+ path );
+									if ( getRestOfPathArray(path, 4) ) {
+										log('info', 'playMediaGet()', 'getRestOfPathArray: '+ decodeURI(getRestOfPathArray(path, 4)) );
+
+										try {
+											var media = JSON.parse( decodeURI(getRestOfPathArray(path, 4)) );
+											result = getDevice(path[2]).playMedia(media);
+										} catch (e) {
+											result = {response:'error', error: e};
+										}
+									} else {
+										result = {response:'error', error: 'post media unknown'};
+									}
+								}
 								if (path[3]=='disconnect') {
 									getDevice(path[2]).disconnect();
 									result = { response:'ok' };
@@ -362,7 +377,11 @@ function getDeviceConnected(id){
 					log('debug', 'getDeviceConnected()', 'once linkChanged: ' + getDevice(id).link, id);
 					resolve( getDevice(id) );
 				});
-				//TODO: maybe set timeout
+
+				setTimeout(function() {
+					resolve( getDevice(id) );
+				}, 5000);
+				//TODO: better solution
 			}
 			
 		} else {
@@ -527,7 +546,7 @@ function CastDevice(id, address, name) {
 		return {response:'ok'};
 	}
 
-	//reconnectionManagementInit(this); TODO: Doesnt work if called on device creation without .connect()
+	reconnectionManagementInit(this);
 }
 
 function connectReceiverCastDevice(castDevice) {
@@ -593,7 +612,7 @@ function disconnectReceiverCastDevice(castDevice) {
 }
 
 function reconnectionManagementInit(castDevice) {
-	log('info', 'reconnectionManagementInit()', '', castDevice.id);
+	log('debug', 'reconnectionManagementInit()', '', castDevice.id);
 
 	castDevice.event.on('linkChanged', function() {
 		reconnectionManagement(castDevice);
@@ -906,7 +925,7 @@ function discover(target) {
 				  		if (!duplicateDevice(discovered, currentDevice) && currentDevice.name!=null ) {
 				  			log('debug', 'discover()', 'found device: '+ JSON.stringify(currentDevice));
 				  			discovered.push(currentDevice);
-				  			//updateExistingCastDeviceAddress(currentDevice);
+				  			updateExistingCastDeviceAddress(currentDevice);
 
 				  			if ( !deviceExists(currentDevice.id) ) {
 				  				log('info', 'discover()', 'added device name: '+ currentDevice.name +', address: '+ JSON.stringify(currentDevice.address), currentDevice.id);
@@ -961,15 +980,22 @@ function updateExistingCastDeviceAddress(discoveredDevice) {
 	if ( deviceExists(discoveredDevice.id) ) {
 		var castDevice = getDevice(discoveredDevice.id);
 		log('debug', 'updateExistingCastDeviceAddress()', 'exists', discoveredDevice.id);
-		if ( castDevice.address.host != discoveredDevice.ip || castDevice.address.port != discoveredDevice.port ) {
-			log('info', 'updateExistingCastDeviceAddress()', 'updating address from: '+castDevice.address.host+':'+castDevice.address.port+' to: '+discoveredDevice.ip+':'+discoveredDevice.port, discoveredDevice.id);
-			castDevice.disconnect();
+		if (discoveredDevice.address.host && discoveredDevice.address.port) {
+			if (castDevice.address.host != discoveredDevice.address.host || castDevice.address.port != discoveredDevice.address.port) {
+				log('info', 'updateExistingCastDeviceAddress()', 'updating address from: '+castDevice.address.host+':'+castDevice.address.port+' to: '+discoveredDevice.address.host+':'+discoveredDevice.address.port, discoveredDevice.id);
 
-			castDevice.event.once('linkChanged', function() {
-				log('info', 'updateExistingCastDeviceAddress()', 'once linkChanged: ' + castDevice.link, castDevice.id);
-				castDevice.address.host = discoveredDevice.ip;
-				castDevice.address.port = discoveredDevice.port;
-			});
+				if (castDevice.link == 'connected') {
+					castDevice.disconnect();
+					castDevice.event.once('linkChanged', function() {
+						log('info', 'updateExistingCastDeviceAddress()', 'once linkChanged: ' + castDevice.link, castDevice.id);
+						castDevice.address.host = discoveredDevice.ip;
+						castDevice.address.port = discoveredDevice.port;
+					});
+				} else {
+					castDevice.address.host = discoveredDevice.ip;
+					castDevice.address.port = discoveredDevice.port;
+				}
+			}
 		}
 	}
 }
@@ -982,7 +1008,9 @@ function matchGoogleZoneMembers(discoveredZones) {
 			if (element.id) {
 				log( 'debug', 'matchGoogleZoneMembers()', 'groupMemberships: ' + element.groupMemberships, element.id );
 				if ( deviceExists(element.id) ) {
-					log( 'info', 'matchGoogleZoneMembers()', 'device exists, adding groupMemberships: ' + element.groupMemberships, element.id );
+					if ( !getDevice(element.id).groups ) {
+						log( 'info', 'matchGoogleZoneMembers()', 'adding groupMemberships: ' + element.groupMemberships, element.id );
+					}
 					getDevice(element.id).groups = element.groupMemberships;
 					//TODO: castDevice.setMembers()
 				} else {

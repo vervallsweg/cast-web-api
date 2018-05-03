@@ -157,6 +157,9 @@ It uses Google's [default media receiver](https://developers.google.com/cast/doc
 TODO: curl example
 ```
 
+##### /playMediaGet [deprecated]
+Equal to /playMedia just using GET. Warning: Pasting a JSON array into the request query is not a great idea. Links can be truncated, encoded/decoded wrong, leading to playback errors in the best case. Use /playMedia whenever possible!
+
 ##### /subscribe/{callback address}
 Creates a subscription for the selected device. When the device's status object changes (i.e. volume/playback changes) the new status update is send to the callback address. For now it only supports http callbacks and only one per device. If you call this path again for the same device, with a different callback address, the old callback will be overwritten.
 ```
