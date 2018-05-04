@@ -602,10 +602,10 @@ function disconnectReceiverCastDevice(castDevice) {
 			clearInterval(castDevice.castConnectionReceiver.heartBeatIntervall);
 			//castDevice.castConnectionReceiver.connection.send({ type: 'CLOSE' });
 			castDevice.castConnectionReceiver.client.close();
-			castDevice.castConnectionReceiver = null;
+			//castDevice.castConnectionReceiver = null;
 		}
 	} catch (e) {
-		castDevice.castConnectionReceiver = null;
+		//castDevice.castConnectionReceiver = null;
 		log('error', 'CastDevice.disconnect()', 'exception: '+e, castDevice.id);
 	}
 	castDevice.disconnectMedia();
@@ -688,11 +688,11 @@ function disconnectMediaCastDevice(castDevice) {
 			castDevice.status.subtitle = '';
 			castDevice.status.image = '';
 			castDevice.event.emit('statusChange');
-			castDevice.castConnectionMedia = null;
+			//castDevice.castConnectionMedia = null;
 		}
 	} catch(e) {
 		log('error', 'CastDevice.disconnectMedia()', 'exception: '+e, castDevice.id); //TODO: Notify subscriber
-		castDevice.castConnectionMedia = null;
+		//castDevice.castConnectionMedia = null;
 	}
 }
 
@@ -988,12 +988,16 @@ function updateExistingCastDeviceAddress(discoveredDevice) {
 					castDevice.disconnect();
 					castDevice.event.once('linkChanged', function() {
 						log('info', 'updateExistingCastDeviceAddress()', 'once linkChanged: ' + castDevice.link, castDevice.id);
-						castDevice.address.host = discoveredDevice.ip;
-						castDevice.address.port = discoveredDevice.port;
+						castDevice.address = {
+							host: discoveredDevice.address.host,
+							port: discoveredDevice.address.port
+						};
 					});
 				} else {
-					castDevice.address.host = discoveredDevice.ip;
-					castDevice.address.port = discoveredDevice.port;
+					castDevice.address = {
+						host: discoveredDevice.address.host,
+						port: discoveredDevice.address.port
+					};
 				}
 			}
 		}
