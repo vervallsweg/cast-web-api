@@ -70,7 +70,8 @@ Every request without a device command returns a device status object with the f
 		"status": "{PLAYING/PAUSED/IDLE/BUFFERING}",
 		"title": "My song",
 		"subtitle": "Artist",
-		"image": "http://url.to/image"
+		"image": "http://url.to/image",
+		"groupPlayback": {true/false if device is member of group}
 	},
 	"groups": [ {ids of the groups this device is part of} ],
 	"members": [ {ids of the member devices this group has} ]
@@ -205,6 +206,13 @@ The amount of time after which the API attempts to reconnect to a device in /dev
 ##### /discoveryInterval/{value}
 Default: 60000[ms].
 Sets the interval for the API's automatic device discovery. This ensures that devices can be connected faster and handles address changes.
+
+##### /groupManagement/{true/false}
+Default: true.
+Group-management automatically connects all group members if a cast group is connected to the API. This allows for more reliable group playback detection.
+
+##### /version
+Returns "this" and "latest" versions.
 
 ##### /version/this
 API version you're currently running.

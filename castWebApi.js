@@ -18,10 +18,11 @@ var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
 var timeoutDiscovery = 4000;
-var thisVersion = pkg.version;
 var reconnectInterval = 300000;
 var discoveryInterval = 60000;
+var groupManagement = true;
 var windows = false;
+var thisVersion = pkg.version;
 
 var devices = [];
 
@@ -68,6 +69,9 @@ function interpretArguments() {
 	}
 	if (args.discoveryInterval) {
 		discoveryInterval = args.discoveryInterval;
+	}
+	if (args.groupManagement) {
+		groupManagement = (args.groupManagement == 'true');
 	}
 	if (args.windows) {
 		windows = true;
@@ -151,8 +155,15 @@ function createWebServer() {
 								if (path[3]=='volume') {
 									if (path[4]) {
 										if ( parseInt(path[4])>=0 && parseInt(path[4])<=100) {
-											log('debug-server', 'path[4] targetLevel', (parseInt(path[4])/100) );
-											result = getDevice(path[2]).volume( (parseInt(path[4])/100) );
+											if (path[5]) {
+												if (path[5]=='group') {
+													setGroupLevel( getDevice(path[2]), (parseInt(path[4])/100) );
+													result = {response:'ok'};
+												}
+											} else {
+												log('debug-server', 'path[4] targetLevel', (parseInt(path[4])/100) );
+												result = getDevice(path[2]).volume( (parseInt(path[4])/100) );
+											}
 										} else {
 											result = {response:'error', error:'level unknown'};
 										}
@@ -269,7 +280,7 @@ function createWebServer() {
 								timeoutDiscovery = parseInt(path[3]);
 							}
 						}
-						res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery} ) );
+						res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery } ) );
 					}
 					if (path[2]=="reconnectInterval") {
 						if (path[3]) {
@@ -277,7 +288,7 @@ function createWebServer() {
 								reconnectInterval = parseInt(path[3]);
 							}
 						}
-						res.end( JSON.stringify( { reconnectInterval: reconnectInterval} ) );
+						res.end( JSON.stringify( { reconnectInterval: reconnectInterval } ) );
 					}
 					if (path[2]=="discoveryInterval") {
 						if (path[3]) {
@@ -285,25 +296,40 @@ function createWebServer() {
 								discoveryInterval = parseInt(path[3]);
 							}
 						}
-						res.end( JSON.stringify( { discoveryInterval: discoveryInterval} ) );
+						res.end( JSON.stringify( { discoveryInterval: discoveryInterval } ) );
+					}
+					if (path[2]=="groupManagement") {
+						if (path[3]) {
+							groupManagement = (path[3] == 'true');
+						}
+						res.end( JSON.stringify( { groupManagement: groupManagement } ) );
 					}
 					if (path[2]=="version") {
 						if (path[3]=="this") {
-							res.end( JSON.stringify( { version: thisVersion} ) );
+							res.end( JSON.stringify( { version: thisVersion } ) );
 						}
 						if (path[3]=="latest") {
 							getLatestVersion()
 							.then(version => {
-								res.end( JSON.stringify( { version: version} ) );
+								res.end( JSON.stringify( { version: version } ) );
 							})
 							.catch(errorMessage => {
 								res.statusCode = 500;
-								res.end( JSON.stringify( { response: error, error: errorMessage} ) );
+								res.end( JSON.stringify( { response: error, error: errorMessage } ) );
+							})
+						} else {
+							getLatestVersion()
+							.then(version => {
+								res.end( JSON.stringify( { this: thisVersion, latest: version } ) );
+							})
+							.catch(errorMessage => {
+								res.statusCode = 500;
+								res.end( JSON.stringify( { response: error, error: errorMessage } ) );
 							})
 						}
 					}
 				} else {
-					res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery, reconnectInterval: reconnectInterval, discoveryInterval: discoveryInterval } ) );
+					res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery, reconnectInterval: reconnectInterval, discoveryInterval: discoveryInterval, groupManagement: groupManagement } ) );
 				}
 			}
 
@@ -430,6 +456,9 @@ function CastDevice(id, address, name) {
 
 	this.connect = function() {
 		connectReceiverCastDevice(this);
+		if (groupManagement) {
+			connectGroupMembers(this);
+		}
 	};
 
     this.disconnect = function() {
@@ -532,7 +561,7 @@ function CastDevice(id, address, name) {
 	}
 
 	this.setStatus = function(key, value) {
-		if (key=='volume' || key=='muted' || key=='application' || key=='status' || key=='title' || key=='subtitle' || key=='image') {
+		if (key=='volume' || key=='muted' || key=='application' || key=='status' || key=='title' || key=='subtitle' || key=='image' || key=='groupPlayback') {
 			if (value == null) { value = '' };
 			if (this.status[key] != value) {
 				this.status[key] = value;
@@ -1081,6 +1110,55 @@ function matchGoogleZoneMembers(discoveredZones) {
 		});
 	} catch (e) {
 		log( 'error', 'matchGoogleZoneMembers()', 'error while matching zones: ' + e );
+	}
+}
+
+function connectGroupMembers(castDevice) {
+	if (castDevice.members) {
+		castDevice.members.forEach(function(member) {
+			if ( deviceExists(member) || member || member!='' ) {
+				var castDeviceMember = getDevice(member);
+				if (castDeviceMember.connection!='connected') {
+					log( 'info', 'connectGroupMembers()', 'connecting member: ' + castDeviceMember.id, castDevice.id );
+					castDeviceMember.connect();
+				}
+			}
+		});
+
+		castDevice.event.on('statusChange', function() {
+			if (castDevice.status.application) {
+				if (castDevice.status.application!='Backdrop' && castDevice.status.application!='') {
+					syncGroupMemberStatus(castDevice.status, castDevice.members, castDevice.id);
+				}
+			}
+		});
+	}
+}
+
+function syncGroupMemberStatus(status, members, id) {
+	log( 'info', 'syncGroupMemberStatus()', 'to members: '+ members +', new status: '+ JSON.stringify(status), id);
+
+	members.forEach(function(member) {
+		if ( deviceExists(member) || member || member!='' ) {
+			var castDeviceMember = getDevice(member);
+			castDeviceMember.status.groupPlayback = true;
+			for (var key in status) {
+				if (key != 'volume' && key != 'muted') {
+					castDeviceMember.setStatus(key, status[key]);
+				}
+			}
+		}
+	});
+}
+
+function setGroupLevel(castDevice, level) {
+	log('info', 'setGroupLevel()', 'target level: '+ level, castDevice.id);
+	if (castDevice.members) {
+		castDevice.members.forEach(function(member) {
+			if ( deviceExists(member) || member || member!='' ) {
+				getDevice(member).volume(level);
+			}
+		});
 	}
 }
 
