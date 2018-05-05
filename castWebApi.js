@@ -554,9 +554,9 @@ function CastDevice(id, address, name) {
 
 	this.removeSubscription = function() {
 		log('info', 'CastDevice.removeSubscription()', '', this.id);
-		this.event.removeAllListeners('statusChange');
-		this.event.removeAllListeners('linkChanged');
-		this.callback = null;
+		//this.event.removeAllListeners('statusChange'); //Breaks group man
+		//this.event.removeAllListeners('linkChanged'); //Breaks reconnect man
+		delete this.callback;
 		return {response:'ok'};
 	}
 
@@ -576,6 +576,7 @@ function CastDevice(id, address, name) {
 	}
 
 	reconnectionManagementInit(this);
+	subscriptionInit(this);
 }
 
 function connectReceiverCastDevice(castDevice) {
@@ -855,21 +856,36 @@ function playMediaCastDevice(castDevice, media) {
 	}
 }
 
-function createSubscription(castDevice, callback) {
-	castDevice.removeSubscription();
-	castDevice.callback = url.parse('http://'+callback);
-
-	log('info', 'CastDevice.createSubscription()', 'callback: '+ JSON.stringify(castDevice.callback), castDevice.id);
-
+function subscriptionInit(castDevice) {
+	log('debug', 'CastDevice.subscriptionInit()', '', castDevice.id);
 	castDevice.event.on('statusChange', function() {
-		sendCallBack( castDevice.toString(), castDevice.callback );
+		if (castDevice.callback) {
+			//log('info', 'CastDevice.subscriptionInit()', 'castDevice.toString(): '+JSON.stringify( castDevice.toString() )+', '+JSON.stringify( castDevice.callback ), castDevice.id);
+			sendCallBack( castDevice.toString(), castDevice.callback );
+		}
 	});
 
 	castDevice.event.on('linkChanged', function() {
-		sendCallBack( castDevice.toString(), castDevice.callback );
+		if (castDevice.callback) {
+			//log('info', 'CastDevice.subscriptionInit()', 'castDevice.toString(): '+JSON.stringify( castDevice.toString() )+', '+JSON.stringify( castDevice.callback ), castDevice.id);
+			sendCallBack( castDevice.toString(), castDevice.callback );
+		}
 	});
+}
 
-	castDevice.event.emit('statusChange');
+function createSubscription(castDevice, callback) {
+	castDevice.removeSubscription();
+
+	try {
+		castDevice.callback = url.parse('http://'+callback);
+	} catch(e) {
+		delete castDevice.callback;
+	}
+	
+	log('info', 'CastDevice.createSubscription()', 'callback: '+ JSON.stringify(castDevice.callback), castDevice.id);
+	if (castDevice.callback) {
+		sendCallBack( castDevice.toString(), castDevice.callback );
+	}
 }
 
 function sendCallBack(status, callback) {
@@ -1127,21 +1143,25 @@ function connectGroupMembers(castDevice) {
 
 		castDevice.event.on('statusChange', function() {
 			if (castDevice.status.application) {
-				if (castDevice.status.application!='Backdrop' && castDevice.status.application!='') {
-					syncGroupMemberStatus(castDevice.status, castDevice.members, castDevice.id);
+				if (castDevice.status.application!='Backdrop' && castDevice.status.application!='') { //TODO: use isIdleScreen
+					syncGroupMemberStatus(castDevice.status, castDevice.members, castDevice.id, true);
+				} else {
+					syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
 				}
+			} else {
+				syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
 			}
 		});
 	}
 }
 
-function syncGroupMemberStatus(status, members, id) {
-	log( 'info', 'syncGroupMemberStatus()', 'to members: '+ members +', new status: '+ JSON.stringify(status), id);
+function syncGroupMemberStatus(status, members, id, groupPlayback) {
+	log( 'info', 'syncGroupMemberStatus('+groupPlayback+')', 'to members: '+ members +', new status: '+ JSON.stringify(status), id);
 
 	members.forEach(function(member) {
 		if ( deviceExists(member) || member || member!='' ) {
 			var castDeviceMember = getDevice(member);
-			castDeviceMember.status.groupPlayback = true;
+			castDeviceMember.status.groupPlayback = groupPlayback;
 			for (var key in status) {
 				if (key != 'volume' && key != 'muted') {
 					castDeviceMember.setStatus(key, status[key]);
