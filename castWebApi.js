@@ -17,9 +17,10 @@ const chalk = require('chalk');
 var hostname = '127.0.0.1';
 var port = 3000;
 var currentRequestId = 1;
-var timeoutDiscovery = 4000;
+var timeoutDiscovery = 5000;
 var reconnectInterval = 300000;
 var discoveryInterval = 60000;
+var discoveryRuns = 2;
 var groupManagement = true;
 var windows = false;
 var thisVersion = pkg.version;
@@ -36,11 +37,11 @@ if (!windows) {
 function startApi() {
 	console.log('cast-web-api v'+thisVersion);
 	console.log('Discovering devices, please wait...');
-	discover()
+	discoverZones()
 	.then(devices => {
 		console.log('... done!');
 		setInterval(function() {
-			discover();
+			discoverZones();
 		}, discoveryInterval);
 		createWebServer();
 	})
@@ -69,6 +70,9 @@ function interpretArguments() {
 	}
 	if (args.discoveryInterval) {
 		discoveryInterval = args.discoveryInterval;
+	}
+	if (args.discoveryRuns) {
+		discoveryRuns = args.discoveryRuns;
 	}
 	if (args.groupManagement) {
 		groupManagement = (args.groupManagement == 'true');
@@ -115,7 +119,7 @@ function createWebServer() {
 			if (path[1]=="device") {
 				if (path[2]) {
 					if (path[2] == 'discover') {
-						discover();
+						discoverZones();
 						res.end( JSON.stringify( {response: 'ok'} ) );
 					}
 					if (path[2] == 'connected') {
@@ -297,6 +301,14 @@ function createWebServer() {
 							}
 						}
 						res.end( JSON.stringify( { discoveryInterval: discoveryInterval } ) );
+					}
+					if (path[2]=="discoveryRuns") {
+						if (path[3]) {
+							if ( parseInt(path[3]) ) {
+								discoveryRuns = parseInt(path[3]);
+							}
+						}
+						res.end( JSON.stringify( { discoveryRuns: discoveryRuns } ) );
 					}
 					if (path[2]=="groupManagement") {
 						if (path[3]) {
@@ -575,6 +587,10 @@ function CastDevice(id, address, name) {
 		return {response:'ok'};
 	}
 
+	this.setZones = function(zones) {
+		setZonesCastDevice(this, zones);
+	}
+
 	reconnectionManagementInit(this);
 	subscriptionInit(this);
 }
@@ -582,6 +598,7 @@ function CastDevice(id, address, name) {
 function connectReceiverCastDevice(castDevice) {
 	try {
 		log('info', 'CastDevice.connect()', 'host: ' + castDevice.address.host + ', port: ' + castDevice.address.port, castDevice.id );
+		castDevice.link = 'connecting';
 		castDevice.castConnectionReceiver = new Object();
 		castDevice.castConnectionReceiver.client = new Client();
 
@@ -843,7 +860,7 @@ function playMediaCastDevice(castDevice, media) {
 				});
 		    });
 	 	});
-	  	//TODO: doesnt callback to subs, empties castDevice.event and castDevice.callback = null -> apparently works...
+
 	 	setTimeout(() => {
 			try{
 				castv2Client.close();
@@ -936,6 +953,83 @@ function getRestOfPathArray(pathArray, start) {
 	}
 }
 
+function discoverZones() {
+	return new Promise( function(resolve, reject) {
+		discoverTimes(discoveryRuns, [])
+		.then(zoneResults => {
+			var merged = [];
+			zoneResults.forEach(function(zoneResult) {
+				zoneResult.zones.forEach(function(zone) {
+					var exists = false;
+
+					merged.forEach(function(mergedZone) {
+						if (mergedZone.id == zone.id) {
+							exists = true;
+							if (zone.groups) {
+								zone.groups.forEach(function(groupId) {
+									if (mergedZone.groups.indexOf(groupId) < 0) {
+										mergedZone.groups.push(groupId);
+									}
+								});
+							}
+						}
+					});
+					
+					if (!exists) {
+						merged.push(zone);
+						log('debug', 'discoverZones()', 'doesnt exist, pushing: ' + zone.id);
+					} else {
+						log('debug', 'discoverZones()', 'exists, pushed already: ' + zone.id);
+					}
+				});
+			});
+			createGoogleZones(merged);
+			resolve(merged);			
+		})
+		.catch(errorMessage => {
+			log('error', 'discoverZones()', 'failed: ' + errorMessage);
+			reject(errorMessage);
+		})
+	});
+}
+
+function discoverTimes(times, zoneResults) {
+	return new Promise( function(resolve, reject) {
+		discover('googlezone')
+		.then(devices => {
+			log('debug', 'discoverTimes()', 'discover("googlezone") done times: '+times+', zoneResults: '+zoneResults+', typeof: '+ typeof zoneResults);
+			zoneResults.push({ zones: devices });
+			if (times>1) {
+				log( 'debug', "discoverTimes()", 'newZoneResults: '+zoneResults+', new times: '+(times-1) );
+				resolve( discoverTimes( (times-1), zoneResults ) );
+			} else {
+				discover('googlecast')
+				.then(devices => {
+					resolve( zoneResults );
+				})
+				.catch(errorMessage => {
+					log('error', 'discoverTimes()', 'discover("googlecast") failed: ' + errorMessage);
+					resolve( zoneResults );
+				})
+			}
+		})
+		.catch(errorMessage => {
+			log('error', 'discoverTimes()', 'discover("googlezone") failed: ' + errorMessage);
+			reject(errorMessage);
+		})
+	});
+}
+
+function existsInMerged(merged, id) {
+	var exists = false;
+	merged.forEach(function(zone) {
+		if (zone.id == id) {
+			exists = true;
+		}
+	});
+	return exists;
+}
+
 //GOOGLE CAST FUNCTIONS 'googlecast' 'googlezone'
 function discover(target) {
 	var both = false;
@@ -983,7 +1077,7 @@ function discover(target) {
 					if (target=='googlezone' && service.type[0].name==target) {
 						var currentGroupMembership = {
 							id: getId(service.txt[0]).replace(/-/g, ''),
-							groupMemberships: getGroupIds(service.txt)
+							groups: getGroupIds(service.txt)
 						}
 						log('debug', 'discover()', 'found googlezone: ' + JSON.stringify(currentGroupMembership) );
 						discovered.push(currentGroupMembership);
@@ -1003,19 +1097,7 @@ function discover(target) {
 				reject('Exception caught: ' + e)
 			}
 			log('debug', 'discover()', 'updateCounter: ' + updateCounter);
-			if (target == 'googlezone') {
-				matchGoogleZoneMembers(discovered);
-			}
-			if (both) {
-				log('debug', 'discover()', 'both true, starting googlezone');
-				discover('googlezone')
-				.then(groups => {
-					log('debug', 'discover()', 'both true, googlezone done');
-					resolve(JSON.stringify(discovered));
-				})
-			} else {
-				resolve(JSON.stringify(discovered));
-			}
+			resolve(discovered);
 	  	}, timeoutDiscovery);
 	});
 }
@@ -1049,93 +1131,107 @@ function updateExistingCastDeviceAddress(discoveredDevice) {
 	}
 }
 
-function matchGoogleZoneMembers(discoveredZones) {
-	log( 'debug', 'matchGoogleZoneMembers()', 'discoveredZones: ' + JSON.stringify(discoveredZones) );
-	try {
-		//add .groups to device
-		discoveredZones.forEach(function(element) {
-			if (element.id) {
-				log( 'debug', 'matchGoogleZoneMembers()', 'groupMemberships: ' + element.groupMemberships, element.id );
-				if ( deviceExists(element.id) ) {
-					if ( !getDevice(element.id).groups ) {
-						log( 'info', 'matchGoogleZoneMembers()', 'adding groupMemberships: ' + element.groupMemberships, element.id );
-					}
-					getDevice(element.id).groups = element.groupMemberships;
-					//TODO: castDevice.setMembers()
-				} else {
-					log( 'debug', 'matchGoogleZoneMembers()', 'device doesnt exist: ' + deviceExists(element.id), element.id );
-					
-				}
-			}
-		});
-		//remove old .groups from devices
-		devices.forEach(function(device) {
-			var isDiscoveredZone = false;
-			discoveredZones.forEach(function(zone) {
-				if (device.id == zone.id) {
-					isDiscoveredZone = true;
-				}
-			});
-			if (!isDiscoveredZone) {
-				log( 'debug', 'matchGoogleZoneMembers()', 'isDiscoveredZone false, removing .groups', device.id );
-				delete getDevice(device.id).groups
-			}
-		});
-		//reverse sync for members
-		var members = [];
-		devices.forEach(function(device) {
-			if (device.groups) {
-				device.groups.forEach(function(group) {
-					var append = false;
-					var thisMember = {
-						id: group,
-						member: [device.id]
-					};
+function createGoogleZones(discoveredZones) {
+	log( 'debug', 'createGoogleZones()', 'discoveredZones: ' + JSON.stringify(discoveredZones) );
+	var zones = discoveredZones;
 
-					members.forEach(function(member) {
-						if (member.id == thisMember.id) {
-							member.member.push(thisMember.member[0]);
-							append = true;
-						}
-					});
-
-					if (!append) {
-						members.push(thisMember);
+	discoveredZones.forEach(function(device) {
+		if (device.groups) {
+			device.groups.forEach(function(groupId) {
+				var groupExists = false;
+				zones.forEach(function(element) {
+					if (element.id == groupId) {
+						groupExists = element;
 					}
 				});
-			}
-		});
-		log( 'debug', 'matchGoogleZoneMembers()', 'members: '+JSON.stringify(members) );
-		members.forEach(function(member) {
-			if ( deviceExists(member.id) ) {
-				getDevice(member.id).members = member.member;
-			}
-		});
-		//remove old .members from devices
-		devices.forEach(function(device) {
-			var isDiscoveredMember = false;
-			members.forEach(function(member) {
-				if (device.id == member.id) {
-					isDiscoveredMember = true;
+				if (groupExists) {
+					log( 'debug', 'createGoogleZones()', 'groupExists: ' + JSON.stringify(groupExists) );
+					groupExists.members.push(device.id);
+				} else {
+					log( 'debug', 'createGoogleZones()', 'group doesnt exist: ' + groupExists );
+					zones.push({
+						id: groupId,
+						members: [ device.id ]
+					});
 				}
 			});
-			if (!isDiscoveredMember) {
-				log( 'debug', 'matchGoogleZoneMembers()', 'isDiscoveredMember false, removing .members', device.id );
-				delete getDevice(device.id).members
+		}
+	});
+
+	log( 'debug', 'createGoogleZones()', 'done! zones: ' + JSON.stringify(zones) );
+	devices.forEach(function(device) {
+		var zone = { id: device.id };
+		
+		zones.forEach(function(element) {
+			if (element.id == device.id) {
+				zone = element;
 			}
 		});
-	} catch (e) {
-		log( 'error', 'matchGoogleZoneMembers()', 'error while matching zones: ' + e );
+
+		device.setZones(zone);
+	})
+}
+
+function setZonesCastDevice(castDevice, zones) {
+	log( 'debug', 'setZonesCastDevice()', 'zones: ' + JSON.stringify(zones), castDevice.id );
+	
+	if (zones.members) {
+		if (castDevice.members) {
+			zones.members.forEach(function(memberId) {
+				if ( castDevice.members.indexOf(memberId) < 0 ) {
+					log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group member: ' + memberId, castDevice.id );
+					//TODO: emit event group changed
+				}
+			});
+			castDevice.members.forEach(function(memberId) {
+				if ( zones.members.indexOf(memberId) < 0 ) {
+					log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group member: ' + memberId, castDevice.id );
+				}
+			});
+		} else {
+			log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group members: ' + zones.members, castDevice.id );
+		}
+		castDevice.members = zones.members;
+	} else {
+		if (castDevice.members) {
+			log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group members: ' + castDevice.members, castDevice.id );
+		}
+		delete castDevice.members;
 	}
+
+	if (zones.groups) {
+		if (castDevice.groups) {
+			zones.groups.forEach(function(groupId) {
+				if ( castDevice.groups.indexOf(groupId) < 0 ) {
+					log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group: ' + groupId, castDevice.id );
+				}
+			});
+			castDevice.groups.forEach(function(groupId) {
+				if ( zones.groups.indexOf(groupId) < 0 ) {
+					log( 'info', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group: ' + groupId, castDevice.id );
+				}
+			});
+		} else {
+			log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') groups: ' + zones.groups, castDevice.id );
+		}
+		castDevice.groups = zones.groups;
+	} else {
+		if (castDevice.groups) {
+			log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') groups: ' + castDevice.groups, castDevice.id );
+		}
+		delete castDevice.groups;
+	}
+
 }
 
 function connectGroupMembers(castDevice) {
 	if (castDevice.members) {
 		castDevice.members.forEach(function(member) {
-			if ( deviceExists(member) || member || member!='' ) {
+			if ( deviceExists(member) && member && member!='' ) {
 				var castDeviceMember = getDevice(member);
-				if (castDeviceMember.connection!='connected') {
-					log( 'info', 'connectGroupMembers()', 'connecting member: ' + castDeviceMember.id, castDevice.id );
+				if (castDeviceMember.link=='disconnected') {
+					log( 'info', 'connectGroupMembers()', 'connecting member: ' + castDeviceMember.id + ', castDeviceMember.link: '+castDeviceMember.link, castDevice.id );
+					//castDeviceMember.link = 'connecting';
 					castDeviceMember.connect();
 				}
 			}
@@ -1150,6 +1246,19 @@ function connectGroupMembers(castDevice) {
 				}
 			} else {
 				syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
+			}
+		});
+	}
+
+	if (castDevice.groups) {
+		castDevice.groups.forEach(function(group) {
+			if ( group && group!='' && deviceExists(group) ) {
+				var castDeviceGroup = getDevice(group);
+				if (castDeviceGroup.link=='disconnected') {
+					log( 'info', 'connectGroupMembers()', 'connecting group: ' + group + ', castDeviceGroup.link: '+castDeviceGroup.link, castDevice.id );
+					//castDeviceGroup.link = 'connecting';
+					castDeviceGroup.connect();
+				}
 			}
 		});
 	}

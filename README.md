@@ -196,7 +196,7 @@ http://127.0.0.1/config/timeoutDiscovery/6000		//Returns 6000 and sets timeoutDi
 ```
 
 ##### /timeoutDiscovery/{value}
-Default: 4000[ms].
+Default: 5000[ms].
 Sets the time for the server to wait for all Cast devices on the network to reply on discovery. Increase this value if you're having difficulties discovering all devices on your network.
 
 ##### /reconnectInterval/{value}
@@ -206,6 +206,10 @@ The amount of time after which the API attempts to reconnect to a device in /dev
 ##### /discoveryInterval/{value}
 Default: 60000[ms].
 Sets the interval for the API's automatic device discovery. This ensures that devices can be connected faster and handles address changes.
+
+##### /discoveryRuns/{value}
+Default: 2.
+Sets how often the API's automatic device discovery should discover devices per interval. Flaky device discovery is a problem especially for group managment. Sometimes device discovery doesn't return all groups, which breaks group playback detection. Running group discovery multiple times and merging the results ensures a more reliable group detection.
 
 ##### /groupManagement/{true/false}
 Default: true.
