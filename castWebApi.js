@@ -367,6 +367,10 @@ function createWebServer() {
 			log('server', 'on("request")', req.url);
 		}
 	});
+
+	server.on('clientError', (err, socket) => {
+		socket.end('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+	});
 }
 
 function deviceExists(id) {
@@ -593,6 +597,7 @@ function CastDevice(id, address, name) {
 
 	reconnectionManagementInit(this);
 	subscriptionInit(this);
+	connectGroupMembersInit(this);
 }
 
 function connectReceiverCastDevice(castDevice) {
@@ -668,15 +673,17 @@ function reconnectionManagementInit(castDevice) {
 
 function reconnectionManagement(castDevice) {
 	log('debug', 'reconnectionManagement()', 'link changed to: ' + castDevice.link + ', reconnectInterval: ' + castDevice.reconnectInterval, castDevice.id);
-	if (castDevice.link!='connected') {
-		log('debug', 'reconnectionManagement()', 'starting interval', castDevice.id);
-		castDevice.reconnectInterval = setInterval(function() {
-			log('debug', 'reconnectionManagement()', 'reconnect evaluating', castDevice.id);
-			if (castDevice.link!='connected') {
-				log('info', 'reconnectionManagement()', 'reconnecting', castDevice.id);
-				castDevice.connect();
-			}
-		}, reconnectInterval);
+	if (castDevice.link=='disconnected') {
+		if (castDevice.reconnectInterval==null) {
+			log('debug', 'reconnectionManagement()', 'starting interval', castDevice.id);
+			castDevice.reconnectInterval = setInterval(function() {
+				log('debug', 'reconnectionManagement()', 'reconnect evaluating', castDevice.id);
+				if (castDevice.link!='connected') {
+					log('info', 'reconnectionManagement()', 'reconnecting', castDevice.id);
+					castDevice.connect();
+				}
+			}, reconnectInterval);
+		}
 	} else {
 		log('debug', 'reconnectionManagement()', 'interval evaluating', castDevice.id);
 		if (castDevice.reconnectInterval!=null) {
@@ -929,6 +936,10 @@ function sendCallBack(status, callback) {
 			});*/
 		});
 
+		req.on('error', function(error) {
+			log('error', 'sendCallBack()', 'cannot send callback: ' + JSON.stringify(callback) + ', error: ' + error, status.id);
+		});
+
 		req.write(data);
 		req.end();
 	} catch (e) {
@@ -1179,22 +1190,25 @@ function setZonesCastDevice(castDevice, zones) {
 		if (castDevice.members) {
 			zones.members.forEach(function(memberId) {
 				if ( castDevice.members.indexOf(memberId) < 0 ) {
-					log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group member: ' + memberId, castDevice.id );
-					//TODO: emit event group changed
+					//log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group member: ' + memberId, castDevice.id );
+					castDevice.event.emit('groupChange', 'add', { id: castDevice.id, members: [memberId] });
 				}
 			});
 			castDevice.members.forEach(function(memberId) {
 				if ( zones.members.indexOf(memberId) < 0 ) {
-					log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group member: ' + memberId, castDevice.id );
+					//log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group member: ' + memberId, castDevice.id );
+					castDevice.event.emit('groupChange', 'remove', { id: castDevice.id, members: [memberId] });
 				}
 			});
 		} else {
-			log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group members: ' + zones.members, castDevice.id );
+			//log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group members: ' + zones.members, castDevice.id );
+			castDevice.event.emit('groupChange', 'add', { id: castDevice.id, members: zones.members });
 		}
 		castDevice.members = zones.members;
 	} else {
 		if (castDevice.members) {
-			log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group members: ' + castDevice.members, castDevice.id );
+			//log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group members: ' + castDevice.members, castDevice.id );
+			castDevice.event.emit('groupChange', 'remove', { id: castDevice.id, members: castDevice.members });
 		}
 		delete castDevice.members;
 	}
@@ -1203,25 +1217,79 @@ function setZonesCastDevice(castDevice, zones) {
 		if (castDevice.groups) {
 			zones.groups.forEach(function(groupId) {
 				if ( castDevice.groups.indexOf(groupId) < 0 ) {
-					log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group: ' + groupId, castDevice.id );
+					//log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') group: ' + groupId, castDevice.id );
+					castDevice.event.emit('groupChange', 'add', { id: castDevice.id, groups: [groupId] });
 				}
 			});
 			castDevice.groups.forEach(function(groupId) {
 				if ( zones.groups.indexOf(groupId) < 0 ) {
-					log( 'info', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group: ' + groupId, castDevice.id );
+					//log( 'info', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') group: ' + groupId, castDevice.id );
+					castDevice.event.emit('groupChange', 'remove', { id: castDevice.id, groups: [groupId] });
 				}
 			});
 		} else {
-			log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') groups: ' + zones.groups, castDevice.id );
+			//log( 'info', 'setZonesCastDevice()', 'added ('+ castDevice.name +') groups: ' + zones.groups, castDevice.id );
+			castDevice.event.emit('groupChange', 'add', { id: castDevice.id, groups: zones.groups });
 		}
 		castDevice.groups = zones.groups;
 	} else {
 		if (castDevice.groups) {
-			log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') groups: ' + castDevice.groups, castDevice.id );
+			//log( 'error', 'setZonesCastDevice()', 'removed ('+ castDevice.name +') groups: ' + castDevice.groups, castDevice.id );
+			castDevice.event.emit('groupChange', 'remove', { id: castDevice.id, groups: castDevice.groups });
 		}
 		delete castDevice.groups;
 	}
 
+}
+
+function connectGroupMembersInit(castDevice) {
+	castDevice.event.on('statusChange', function() {
+		if (castDevice.members) {
+			if (castDevice.status.application) {
+				if (castDevice.status.application!='Backdrop' && castDevice.status.application!='') { //TODO: use isIdleScreen
+					syncGroupMemberStatus(castDevice.status, castDevice.members, castDevice.id, true);
+				} else {
+					syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
+				}
+			} else {
+				syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
+			}
+		}
+	});
+
+	castDevice.event.on('groupChange', function(operation, zone) {
+		var level = 'info';
+
+		if (operation == 'remove') {
+			level = 'error';
+		}
+
+		if (zone.members) {
+			log( level, 'on groupChange()', operation+' members: ' + zone.members, zone.id );
+			if (operation == 'remove') {
+				zone.members.forEach(function(memberId) {
+					if ( deviceExists(memberId) ) {
+						var member = getDevice(memberId);
+						if (member.groupPlayback) {
+							log( level, 'on groupChange()', 'resetting groupPlayback for member: ' + memberId, zone.id );
+							syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, [memberId], zone.id, false);
+						}
+					}
+				});
+			}
+			if (operation == 'add') {
+				if ( deviceExists(zone.id) ) {
+					var zone = getDevice(zone.id);
+					log( level, 'on groupChange()', 'evaluating groupPlayback for new members: ' + zone.members, zone.id );
+					zone.event.emit('statusChange'); //maybe delay, coz event call before actual castDevice change
+				}
+			}
+		}
+
+		if (zone.groups) {
+			log( level, 'on groupChange()', operation+' groups: ' + zone.groups, zone.id );
+		}
+	});
 }
 
 function connectGroupMembers(castDevice) {
@@ -1234,18 +1302,6 @@ function connectGroupMembers(castDevice) {
 					//castDeviceMember.link = 'connecting';
 					castDeviceMember.connect();
 				}
-			}
-		});
-
-		castDevice.event.on('statusChange', function() {
-			if (castDevice.status.application) {
-				if (castDevice.status.application!='Backdrop' && castDevice.status.application!='') { //TODO: use isIdleScreen
-					syncGroupMemberStatus(castDevice.status, castDevice.members, castDevice.id, true);
-				} else {
-					syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
-				}
-			} else {
-				syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
 			}
 		});
 	}
