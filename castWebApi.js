@@ -971,41 +971,45 @@ function getRestOfPathArray(pathArray, start) {
 
 function discoverZones() {
 	return new Promise( function(resolve, reject) {
-		discoverTimes(discoveryRuns, [])
-		.then(zoneResults => {
-			var merged = [];
-			zoneResults.forEach(function(zoneResult) {
-				zoneResult.zones.forEach(function(zone) {
-					var exists = false;
+		if ( getNetworkIp() ) {
+			discoverTimes(discoveryRuns, [])
+			.then(zoneResults => {
+				var merged = [];
+				zoneResults.forEach(function(zoneResult) {
+					zoneResult.zones.forEach(function(zone) {
+						var exists = false;
 
-					merged.forEach(function(mergedZone) {
-						if (mergedZone.id == zone.id) {
-							exists = true;
-							if (zone.groups) {
-								zone.groups.forEach(function(groupId) {
-									if (mergedZone.groups.indexOf(groupId) < 0) {
-										mergedZone.groups.push(groupId);
-									}
-								});
+						merged.forEach(function(mergedZone) {
+							if (mergedZone.id == zone.id) {
+								exists = true;
+								if (zone.groups) {
+									zone.groups.forEach(function(groupId) {
+										if (mergedZone.groups.indexOf(groupId) < 0) {
+											mergedZone.groups.push(groupId);
+										}
+									});
+								}
 							}
+						});
+						
+						if (!exists) {
+							merged.push(zone);
+							log('debug', 'discoverZones()', 'doesnt exist, pushing: ' + zone.id);
+						} else {
+							log('debug', 'discoverZones()', 'exists, pushed already: ' + zone.id);
 						}
 					});
-					
-					if (!exists) {
-						merged.push(zone);
-						log('debug', 'discoverZones()', 'doesnt exist, pushing: ' + zone.id);
-					} else {
-						log('debug', 'discoverZones()', 'exists, pushed already: ' + zone.id);
-					}
 				});
-			});
-			createGoogleZones(merged);
-			resolve(merged);			
-		})
-		.catch(errorMessage => {
-			log('error', 'discoverZones()', 'failed: ' + errorMessage);
-			reject(errorMessage);
-		})
+				createGoogleZones(merged);
+				resolve(merged);			
+			})
+			.catch(errorMessage => {
+				log('error', 'discoverZones()', 'failed: ' + errorMessage);
+				reject(errorMessage);
+			})
+		} else {
+			resolve({});
+		}
 	});
 }
 
@@ -1059,7 +1063,7 @@ function discover(target) {
 			var discovered = [];
 			var browser = mdns.createBrowser(mdns.tcp(target));
 			var exception;
-			
+
 			browser.on('error', function(error) {
 				log('debug', 'discover()', 'mdns browser error: ' + error);
 			})
@@ -1289,9 +1293,9 @@ function connectGroupMembersInit(castDevice) {
 			}
 			if (operation == 'add') {
 				if ( deviceExists(zone.id) ) {
-					var zone = getDevice(zone.id);
+					var group = getDevice(zone.id);
 					log( level, 'on groupChange()', 'evaluating groupPlayback for new members: ' + zone.members, zone.id );
-					zone.event.emit('statusChange'); //maybe delay, coz event call before actual castDevice change
+					group.event.emit('statusChange'); //maybe delay, coz event call before actual castDevice change
 				}
 			}
 		}
