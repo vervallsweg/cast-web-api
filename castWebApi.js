@@ -1058,58 +1058,60 @@ function discover(target) {
 		both = true;
 	}
 	return new Promise( function(resolve, reject) {
+		var updateCounter=0;
+		var discovered = [];
 		try {
-			var updateCounter=0;
-			var discovered = [];
-			var browser = mdns.createBrowser(mdns.tcp(target));
-			var exception;
+			if (getNetworkIp) {
+				var browser = mdns.createBrowser(mdns.tcp(target));
+				var exception;
 
-			browser.on('error', function(error) {
-				log('debug', 'discover()', 'mdns browser error: ' + error);
-			})
+				browser.on('error', function(error) {
+					log('debug', 'discover()', 'mdns browser error: ' + error);
+				})
 
-			browser.on('ready', function(){
-				browser.discover();
-			});
+				browser.on('ready', function(){
+					browser.discover();
+				});
 
-			browser.on('update', function(service){
-				try {
-					updateCounter++;
-					log('debug', 'discover()', 'update received, service: ' + JSON.stringify(service));
-					if (target=='googlecast' && service.type[0].name==target) {
-						var currentDevice = {
-							id: getId(service.txt[0]),
-							name: getFriendlyName(service.txt),
-								address: {
-									host: service.addresses[0],
-									port: service.port
+				browser.on('update', function(service){
+					try {
+						updateCounter++;
+						log('debug', 'discover()', 'update received, service: ' + JSON.stringify(service));
+						if (target=='googlecast' && service.type[0].name==target) {
+							var currentDevice = {
+								id: getId(service.txt[0]),
+								name: getFriendlyName(service.txt),
+									address: {
+										host: service.addresses[0],
+										port: service.port
+								}
 							}
-						}
-				  		if (!duplicateDevice(discovered, currentDevice) && currentDevice.name!=null ) {
-				  			log('debug', 'discover()', 'found device: '+ JSON.stringify(currentDevice));
-				  			discovered.push(currentDevice);
-				  			updateExistingCastDeviceAddress(currentDevice);
+					  		if (!duplicateDevice(discovered, currentDevice) && currentDevice.name!=null ) {
+					  			log('debug', 'discover()', 'found device: '+ JSON.stringify(currentDevice));
+					  			discovered.push(currentDevice);
+					  			updateExistingCastDeviceAddress(currentDevice);
 
-				  			if ( !deviceExists(currentDevice.id) ) {
-				  				log('info', 'discover()', 'added device name: '+ currentDevice.name +', address: '+ JSON.stringify(currentDevice.address), currentDevice.id);
-				  				devices.push( new CastDevice( currentDevice.id, currentDevice.address, currentDevice.name ) ); //TODO: addDevice
-				  			}
-				  		} else {
-				  			log('debug', 'discover()', 'duplicate, googlezone device or empy name: ' + JSON.stringify(currentDevice));
-				  		}
-					}
-					if (target=='googlezone' && service.type[0].name==target) {
-						var currentGroupMembership = {
-							id: getId(service.txt[0]).replace(/-/g, ''),
-							groups: getGroupIds(service.txt)
+					  			if ( !deviceExists(currentDevice.id) ) {
+					  				log('info', 'discover()', 'added device name: '+ currentDevice.name +', address: '+ JSON.stringify(currentDevice.address), currentDevice.id);
+					  				devices.push( new CastDevice( currentDevice.id, currentDevice.address, currentDevice.name ) ); //TODO: addDevice
+					  			}
+					  		} else {
+					  			log('debug', 'discover()', 'duplicate, googlezone device or empy name: ' + JSON.stringify(currentDevice));
+					  		}
 						}
-						log('debug', 'discover()', 'found googlezone: ' + JSON.stringify(currentGroupMembership) );
-						discovered.push(currentGroupMembership);
+						if (target=='googlezone' && service.type[0].name==target) {
+							var currentGroupMembership = {
+								id: getId(service.txt[0]).replace(/-/g, ''),
+								groups: getGroupIds(service.txt)
+							}
+							log('debug', 'discover()', 'found googlezone: ' + JSON.stringify(currentGroupMembership) );
+							discovered.push(currentGroupMembership);
+						}
+				  	} catch (e) {
+						log('error', 'discover()', 'exception while prcessing service: '+e);
 					}
-			  	} catch (e) {
-					log('error', 'discover()', 'exception while prcessing service: '+e);
-				}
-			});
+				});
+			}
 		} catch (e) {
 			reject('Exception caught: ' + e);
 		}
@@ -1118,7 +1120,7 @@ function discover(target) {
 			try{
 				browser.stop();
 			} catch (e) {
-				reject('Exception caught: ' + e)
+				//reject('Exception caught: ' + e)
 			}
 			log('debug', 'discover()', 'updateCounter: ' + updateCounter);
 			resolve(discovered);
