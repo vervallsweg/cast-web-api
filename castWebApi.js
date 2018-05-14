@@ -507,7 +507,7 @@ function CastDevice(id, address, name) {
 
 	this.volume = function(targetLevel) {
 		log('info', 'CastDevice.volume()', targetLevel, this.id);
-		if (this.castConnectionReceiver.receiver) {
+		if (this.castConnectionReceiver.receiver && this.link == 'connected') {
 			this.castConnectionReceiver.receiver.send({ type: 'SET_VOLUME', volume: { level: targetLevel }, requestId: getNewRequestId() });
 			return {response:'ok'};
 		} else {
@@ -517,7 +517,7 @@ function CastDevice(id, address, name) {
 
 	this.muted = function(isMuted) {
 		log('info', 'CastDevice.muted()', isMuted, this.id);
-		if (this.castConnectionReceiver.receiver) {
+		if (this.castConnectionReceiver.receiver && this.link == 'connected') {
 			this.castConnectionReceiver.receiver.send({ type: 'SET_VOLUME', volume: { muted: isMuted }, requestId: getNewRequestId() });
 			return {response:'ok'};
 		} else {
@@ -527,7 +527,7 @@ function CastDevice(id, address, name) {
 
 	this.play = function() {
 		log('info', 'CastDevice.play()', '', this.id);
-		if (this.castConnectionMedia) {
+		if (this.castConnectionMedia && this.link == 'connected') {
 			if (this.castConnectionMedia.media && this.castConnectionReceiver.sessionId && this.castConnectionMedia.mediaSessionId) {
 				this.castConnectionMedia.media.send({ type: 'PLAY', requestId: getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
 				return {response:'ok'};
@@ -541,7 +541,7 @@ function CastDevice(id, address, name) {
 
 	this.pause = function() {
 		log('info', 'CastDevice.pause()', '', this.id);
-		if (this.castConnectionMedia) {
+		if (this.castConnectionMedia && this.link == 'connected') {
 			if (this.castConnectionMedia.media && this.castConnectionReceiver.sessionId && this.castConnectionMedia.mediaSessionId) {
 				this.castConnectionMedia.media.send({ type: 'PAUSE', requestId: getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
 				return {response:'ok'};
@@ -555,7 +555,7 @@ function CastDevice(id, address, name) {
 
 	this.stop = function() {
 		log('info', 'CastDevice.stop()', '', this.id);
-		if (this.castConnectionReceiver.sessionId) {
+		if (this.castConnectionReceiver.sessionId && this.link == 'connected') {
 			this.castConnectionReceiver.receiver.send({ type: 'STOP', sessionId: this.castConnectionReceiver.sessionId, requestId: getNewRequestId() });
 			return {response:'ok'};
 		} else {
@@ -714,8 +714,13 @@ function connectMediaCastDevice(castDevice, sessionId) {
 			});
 
 			castDevice.castConnectionMedia.heartBeatIntervall = setInterval(function() {
-				if (castDevice.castConnectionMedia && castDevice.link=='connected') {
-					castDevice.castConnectionMedia.heartbeat.send({ type: 'PING' });
+				try {
+					if (castDevice.castConnectionMedia && castDevice.link=='connected') {
+						castDevice.castConnectionMedia.heartbeat.send({ type: 'PING' });
+					}
+				} catch(e) {
+					log('error', 'CastDevice.connectMedia()', 'heartbeat exception: '+e, castDevice.id);
+					castDevice.disconnectMedia();
 				}
 			}, 5000);
 		});
@@ -1055,6 +1060,10 @@ function discover(target) {
 		var exception;
 
 		try {
+			browser.on('error', function(error) {
+				log('debug', 'discover()', 'mdns browser error: ' + error);
+			})
+
 			browser.on('ready', function(){
 				browser.discover();
 			});
@@ -1118,6 +1127,7 @@ function updateExistingCastDeviceAddress(discoveredDevice) {
 	if ( deviceExists(discoveredDevice.id) ) {
 		var castDevice = getDevice(discoveredDevice.id);
 		log('debug', 'updateExistingCastDeviceAddress()', 'exists', discoveredDevice.id);
+		castDevice.name = discoveredDevice.name;
 		if (discoveredDevice.address.host && discoveredDevice.address.port) {
 			if (castDevice.address.host != discoveredDevice.address.host || castDevice.address.port != discoveredDevice.address.port) {
 				log('info', 'updateExistingCastDeviceAddress()', 'updating address from: '+castDevice.address.host+':'+castDevice.address.port+' to: '+discoveredDevice.address.host+':'+discoveredDevice.address.port, discoveredDevice.id);
