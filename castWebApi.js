@@ -1054,12 +1054,12 @@ function discover(target) {
 		both = true;
 	}
 	return new Promise( function(resolve, reject) {
-		var updateCounter=0;
-		var discovered = [];
-		var browser = mdns.createBrowser(mdns.tcp(target));
-		var exception;
-
 		try {
+			var updateCounter=0;
+			var discovered = [];
+			var browser = mdns.createBrowser(mdns.tcp(target));
+			var exception;
+			
 			browser.on('error', function(error) {
 				log('debug', 'discover()', 'mdns browser error: ' + error);
 			})
