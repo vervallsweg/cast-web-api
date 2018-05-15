@@ -608,32 +608,47 @@ function connectReceiverCastDevice(castDevice) {
 		castDevice.castConnectionReceiver.client = new Client();
 
 		castDevice.castConnectionReceiver.client.connect(castDevice.address, function() {
-			castDevice.castConnectionReceiver.connection = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-		    castDevice.castConnectionReceiver.heartbeat = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.heartbeat', 'JSON');
-		    castDevice.castConnectionReceiver.receiver = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
+			try {
+				castDevice.castConnectionReceiver.connection = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+			    castDevice.castConnectionReceiver.heartbeat = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.tp.heartbeat', 'JSON');
+			    castDevice.castConnectionReceiver.receiver = castDevice.castConnectionReceiver.client.createChannel('sender-0', 'receiver-0', 'urn:x-cast:com.google.cast.receiver', 'JSON');
 
-			castDevice.castConnectionReceiver.connection.send({ type: 'CONNECT' });
-			castDevice.castConnectionReceiver.receiver.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
+				castDevice.castConnectionReceiver.connection.send({ type: 'CONNECT' });
+				castDevice.castConnectionReceiver.receiver.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
 
-		    castDevice.castConnectionReceiver.receiver.on('message', function(data, broadcast) {
-		    	parseReceiverStatusCastDevice(castDevice, data);
-		    	if (castDevice.link != 'connected') {
-					castDevice.link = 'connected';
-					castDevice.event.emit('linkChanged');
-		    	}
-		   	});
+			    castDevice.castConnectionReceiver.receiver.on('message', function(data, broadcast) {
+			    	parseReceiverStatusCastDevice(castDevice, data);
+			    	if (castDevice.link != 'connected') {
+						castDevice.link = 'connected';
+						castDevice.event.emit('linkChanged');
+			    	}
+			   	});
 
-		   	castDevice.castConnectionReceiver.heartBeatIntervall = setInterval(function() {
-				if (castDevice.castConnectionReceiver) {
-					try {
-						castDevice.castConnectionReceiver.heartbeat.send({ type: 'PING' });
-					} catch (e) {
-						log('error', 'CastDevice.connect() castConnectionReceiver.heartBeatIntervall', 'exception: '+e, castDevice.id);
-						castDevice.disconnect(); //TODO:
+			   	castDevice.castConnectionReceiver.receiver.on('error', function(error) {
+			   		log('error', 'CastDevice.connect()', 'castDevice.castConnectionReceiver.receiver error: '+error, castDevice.id);
+					castDevice.disconnect();
+			   	});
+
+			   	castDevice.castConnectionReceiver.connection.on('error', function(error) {
+			   		log('error', 'CastDevice.connect()', 'castDevice.castConnectionReceiver.connection error: '+error, castDevice.id);
+					castDevice.disconnect();
+			   	});
+
+			   	castDevice.castConnectionReceiver.heartBeatIntervall = setInterval(function() {
+					if (castDevice.castConnectionReceiver) {
+						try {
+							castDevice.castConnectionReceiver.heartbeat.send({ type: 'PING' });
+						} catch (e) {
+							log('error', 'CastDevice.connect() castConnectionReceiver.heartBeatIntervall', 'exception: '+e, castDevice.id);
+							castDevice.disconnect(); //TODO:
+						}
+						
 					}
-					
-				}
-			}, 5000);
+				}, 5000);
+			} catch (e) {
+				log('error', 'CastDevice.connect()', 'exception: '+e, castDevice.id);
+				castDevice.disconnect();
+			}
 		});
 		castDevice.castConnectionReceiver.client.on('error', function(err) {
 		 	log('error', 'CastDevice.connect()', 'castDevice.castConnectionReceiver.client error: '+err, castDevice.id);
@@ -701,28 +716,43 @@ function connectMediaCastDevice(castDevice, sessionId) {
 		castDevice.castConnectionMedia.client = new Client();
 
 		castDevice.castConnectionMedia.client.connect(castDevice.address, function() {
-			castDevice.castConnectionMedia.connection = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
-			castDevice.castConnectionMedia.heartbeat = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.heartbeat', 'JSON');
-			castDevice.castConnectionMedia.media = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
+			try {
+				castDevice.castConnectionMedia.connection = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.connection', 'JSON');
+				castDevice.castConnectionMedia.heartbeat = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.tp.heartbeat', 'JSON');
+				castDevice.castConnectionMedia.media = castDevice.castConnectionMedia.client.createChannel('sender-0', sessionId, 'urn:x-cast:com.google.cast.media', 'JSON');
 
-			castDevice.castConnectionMedia.connection.send({ type: 'CONNECT' });
-			castDevice.castConnectionMedia.media.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
+				castDevice.castConnectionMedia.connection.send({ type: 'CONNECT' });
+				castDevice.castConnectionMedia.media.send({ type: 'GET_STATUS', requestId: getNewRequestId() });
 
-			castDevice.castConnectionMedia.media.on('message', function(data, broadcast) {
-				parseMediaStatusCastDevice(castDevice, data);
-				castDevice.castConnectionMedia.link = 'connected';
-			});
+				castDevice.castConnectionMedia.media.on('message', function(data, broadcast) {
+					parseMediaStatusCastDevice(castDevice, data);
+					castDevice.castConnectionMedia.link = 'connected';
+				});
 
-			castDevice.castConnectionMedia.heartBeatIntervall = setInterval(function() {
-				try {
-					if (castDevice.castConnectionMedia && castDevice.link=='connected') {
-						castDevice.castConnectionMedia.heartbeat.send({ type: 'PING' });
-					}
-				} catch(e) {
-					log('error', 'CastDevice.connectMedia()', 'heartbeat exception: '+e, castDevice.id);
+				castDevice.castConnectionMedia.media.on('error', function(error) {
+					log('error', 'CastDevice.connectMedia()', 'castDevice.castConnectionMedia.media error: '+error, castDevice.id);
 					castDevice.disconnectMedia();
-				}
-			}, 5000);
+				});
+
+				castDevice.castConnectionMedia.connection.on('error', function(error) {
+					log('error', 'CastDevice.connectMedia()', 'castDevice.castConnectionMedia.connection error: '+error, castDevice.id);
+					castDevice.disconnectMedia();
+				})
+
+				castDevice.castConnectionMedia.heartBeatIntervall = setInterval(function() {
+					try {
+						if (castDevice.castConnectionMedia && castDevice.link=='connected') {
+							castDevice.castConnectionMedia.heartbeat.send({ type: 'PING' });
+						}
+					} catch(e) {
+						log('error', 'CastDevice.connectMedia()', 'heartbeat exception: '+e, castDevice.id);
+						castDevice.disconnectMedia();
+					}
+				}, 5000);
+			} catch(e) {
+				log('error', 'CastDevice.connectMedia()', 'exception: '+e, castDevice.id);
+				castDevice.disconnectMedia();
+			}
 		});
 		castDevice.castConnectionMedia.client.on('error', function(err) {
 			log('error','CastDevice.connectMedia()', 'castDevice.castConnectionMedia.client error: '+err, castDevice.id);
