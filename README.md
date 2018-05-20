@@ -146,14 +146,21 @@ http://127.0.0.1/device/abc1234a/stop
 Proxies the image from the device's image url. Useful if your application can only access local content.
 
 ##### /playMedia [HTTP POST]
-Returns a response object. Requires a JSON array with the media information in the request data. 
-It uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember: always check device compatibility (formats, screen available) before casting your media to a device!
+Returns a response object. Requires a JSON array with the media information in the request data.
+
 - mediaType: the Google Cast media type string, see: - [supported media](https://developers.google.com/cast/docs/media#media-type-strings "supported media"). Don't just use mp3 or mp4, the correct string from the doc is needed (e.g. audio/mp3).
 - mediaUrl: HTTP(S) url to your content
 - mediaStreamType: Stream type of media your media, see: - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
 - mediaTitle (->title)
 - mediaSubtitle (->subtitle)
 - mediaImageUrl (->images[0]): see - [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
+
+It uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember: always check device compatibility (formats, screen available) before casting your media to a device!
+
+Google TTS is also supported. The text you would like to be read out is in mediaTitle. On the cast device mediaTitle and subtitle will be swapped. Every other attribute is still required except for mediaType, mediaUrl, mediaStreamType which will be overwritten. Requires one more attribute to the JSON array.
+
+- googleTTS: [Language-code](https://cloud.google.com/speech-to-text/docs/languages "Language-code") of the text to read
+
 ```
 TODO: curl example
 ```

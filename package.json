@@ -1,6 +1,6 @@
 {
 	"name": "cast-web-api",
-	"version": "1.0.0-rc.10",
+	"version": "1.0.0-rc.11",
 	"author": "Tobias Haerke",
 	"engines": {
 		"node": ">= 6.0.0"
@@ -22,7 +22,8 @@
 		"minimist": "*",
 		"node-fetch": "^2.1.2",
 		"os": "*",
-		"url": "*"
+		"url": "*",
+		"google-tts-api": "*"
 	},
 	"repository": {
 		"type": "git",

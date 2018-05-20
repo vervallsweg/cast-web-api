@@ -13,6 +13,7 @@ const util = require('util');
 const events = require('events');
 const querystring = require('querystring');
 const chalk = require('chalk');
+const googleTTS = require('google-tts-api');
 
 var hostname = '127.0.0.1';
 var port = 3000;
@@ -20,7 +21,7 @@ var currentRequestId = 1;
 var timeoutDiscovery = 5000;
 var reconnectInterval = 300000;
 var discoveryInterval = 60000;
-var discoveryRuns = 2;
+var discoveryRuns = 4;
 var groupManagement = true;
 var windows = false;
 var thisVersion = pkg.version;
@@ -341,7 +342,7 @@ function createWebServer() {
 						}
 					}
 				} else {
-					res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery, reconnectInterval: reconnectInterval, discoveryInterval: discoveryInterval, groupManagement: groupManagement } ) );
+					res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery, reconnectInterval: reconnectInterval, discoveryInterval: discoveryInterval, groupManagement: groupManagement, discoveryRuns: discoveryRuns } ) );
 				}
 			}
 
@@ -874,6 +875,7 @@ function playMediaCastDevice(castDevice, media) {
 				autoplay : true,
 				preloadTime : 5,
 				activeTrackIds : [],
+				googleTTS: element.googleTTS,
 				//playbackDuration: 4,
 				//startTime : 1,
 				media: {
@@ -893,26 +895,74 @@ function playMediaCastDevice(castDevice, media) {
 			mediaList.push(mediaElement);
 		});
 
-		log('info', 'CastDevice.playMedia()', 'mediaList: ' + JSON.stringify(mediaList), castDevice.id);
+		replaceGoogleTts(mediaList)
+		.then(newMediaList => {
+			log('info', 'CastDevice.playMedia()', 'newMediaList: ' + JSON.stringify(newMediaList), castDevice.id);
 		
-	  	castv2Client.connect(castDevice.address, function() {
-			castv2Client.launch(DefaultMediaReceiver, function(err, player) {
-				player.queueLoad(mediaList, {startIndex:0, repeatMode: "REPEAT_OFF"}, function(err, status) {
-					log('info', 'CastDevice.playMedia()', 'loaded queue: ' + status, castDevice.id);
-				});
-		    });
-	 	});
+		  	castv2Client.connect(castDevice.address, function() {
+				castv2Client.launch(DefaultMediaReceiver, function(err, player) {
+					player.queueLoad(newMediaList, {startIndex:0, repeatMode: "REPEAT_OFF"}, function(err, status) {
+						log('info', 'CastDevice.playMedia()', 'loaded queue: ' + status, castDevice.id);
+					});
+			    });
+		 	});
 
-	 	setTimeout(() => {
-			try{
-				castv2Client.close();
-			} catch(e) {
-				log('error', 'CastDevice.playMedia()', 'castv2Client.close() exception: '+e, castDevice.id );
-			}
-		}, 5000);
+		 	setTimeout(() => {
+				try{ castv2Client.close(); } catch(e) { log('error', 'CastDevice.playMedia()', 'castv2Client.close() exception: '+e, castDevice.id ); }
+			}, 5000);
+		})
+		.catch(error => {
+			log('error', 'CastDevice.playMedia()', 'replaceGoogleTts error: '+error, castDevice.id );
+		})
 	} catch(e) {
 		log('error', 'CastDevice.playMedia()', 'exception: '+e, castDevice.id );
 	}
+}
+
+function replaceGoogleTts(mediaList) {
+	return new Promise( function(resolve, reject) {
+		var googleTTSPromised = 0;
+		var googleTTSResolved = 0;
+
+		mediaList.forEach(function(mediaElement){
+			if (mediaElement.googleTTS && mediaElement.googleTTS!=null) {
+				googleTTSPromised++;
+			} else {
+				delete mediaElement.googleTTS
+			}
+		});
+
+		mediaList.forEach(function(mediaElement){
+			if (mediaElement.googleTTS && mediaElement.googleTTS!=null) {
+				googleTTS(mediaElement.media.metadata.title, mediaElement.googleTTS, 1)
+				.then(function (url) {
+					mediaElement.media.contentId = url;
+					mediaElement.media.mediaType = 'audio/mp3';
+					mediaElement.media.mediaStreamType = 'BUFFERED';
+					googleTTSResolved++;
+					if (googleTTSResolved == googleTTSPromised) {
+						resolve(mediaList);
+					}
+				})
+				.catch(function (err) {
+					log('error', 'replaceGoogleTts()', 'googleTTS error: '+err);
+					delete mediaElement;
+					googleTTSPromised--;
+					if (googleTTSResolved == googleTTSPromised) {
+						resolve(mediaList);
+					}
+				})
+			}
+		});
+
+		if (googleTTSResolved == googleTTSPromised) {
+			resolve(mediaList);
+		}
+
+		setTimeout(function() {
+			reject('Google TTS timeout.');
+		}, 5000);
+	});
 }
 
 function subscriptionInit(castDevice) {
