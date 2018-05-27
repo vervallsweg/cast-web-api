@@ -1339,16 +1339,18 @@ function setZonesCastDevice(castDevice, zones) {
 }
 
 function connectGroupMembersInit(castDevice) {
-	castDevice.event.on('statusChange', function() {
 		if (castDevice.members) {
 			if (castDevice.status.application) {
 				if (castDevice.status.application!='Backdrop' && castDevice.status.application!='') { //TODO: use isIdleScreen
+					log( 'info', 'connectGroupMembersInit()', 'statusChange is group', castDevice.id );
 					syncGroupMemberStatus(castDevice.status, castDevice.members, castDevice.id, true);
 				} else {
-					syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
+					log( 'error', 'connectGroupMembersInit()', 'statusChange is APP no title group', castDevice.id );
+					resetGroupMemberStatus(castDevice);
 				}
 			} else {
-				syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
+				log( 'error', 'connectGroupMembersInit()', 'statusChange is NO APP group', castDevice.id );
+				resetGroupMemberStatus(castDevice);
 			}
 		}
 	});
@@ -1368,7 +1370,7 @@ function connectGroupMembersInit(castDevice) {
 						var member = getDevice(memberId);
 						if (member.groupPlayback) {
 							log( level, 'on groupChange()', 'resetting groupPlayback for member: ' + memberId, zone.id );
-							syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, [memberId], zone.id, false);
+							syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, [memberId], zone.id, false); //Why []?
 						}
 					}
 				});
@@ -1416,13 +1418,36 @@ function connectGroupMembers(castDevice) {
 	}
 }
 
+function resetGroupMemberStatus(castDevice) {
+	if (castDevice.members) { if (castDevice.members[0]) { if ( deviceExists(castDevice.members[0]) ) {
+		var member = getDevice(castDevice.members[0]);
+		if ( member.status ) {
+			if (member.status.groupPlaybackOn == castDevice.id) {
+				syncGroupMemberStatus({ application: '', status: '', title: '', subtitle: '', image: '' }, castDevice.members, castDevice.id, false);
+			} else {
+				log( 'info', 'resetGroupMemberStatus()', 'not resetting, getDevice(castDevice.members[0]).status.groupPlaybackOn: '+getDevice(castDevice.members[0]).status.groupPlaybackOn+' != '+castDevice.id, castDevice.id );
+			}
+		} else {
+			log( 'error', 'resetGroupMemberStatus()', 'device.status: '+device.status, castDevice.id );
+		}
+		
+	} } }
+	
+}
+
 function syncGroupMemberStatus(status, members, id, groupPlayback) {
 	log( 'info', 'syncGroupMemberStatus('+groupPlayback+')', 'to members: '+ members +', new status: '+ JSON.stringify(status), id);
 
 	members.forEach(function(member) {
 		if ( deviceExists(member) || member || member!='' ) {
 			var castDeviceMember = getDevice(member);
-			castDeviceMember.status.groupPlayback = groupPlayback;
+			if (groupPlayback) {
+				castDeviceMember.status.groupPlayback = groupPlayback;
+				castDeviceMember.status.groupPlaybackOn = id;
+			} else {
+				delete castDeviceMember.status.groupPlayback;
+				delete castDeviceMember.status.groupPlaybackOn;
+			}
 			for (var key in status) {
 				if (key != 'volume' && key != 'muted') {
 					castDeviceMember.setStatus(key, status[key]);

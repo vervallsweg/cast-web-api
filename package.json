@@ -1,6 +1,6 @@
 {
 	"name": "cast-web-api",
-	"version": "1.0.0-rc.11",
+	"version": "1.0.0-rc.12",
 	"author": "Tobias Haerke",
 	"engines": {
 		"node": ">= 6.0.0"

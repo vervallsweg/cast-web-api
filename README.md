@@ -71,7 +71,8 @@ Every request without a device command returns a device status object with the f
 		"title": "My song",
 		"subtitle": "Artist",
 		"image": "http://url.to/image",
-		"groupPlayback": {true/false if device is member of group}
+		"groupPlayback": {true/false, if device is member of group},
+		"groupPlayBackOn": {id, if device is member of group}
 	},
 	"groups": [ {ids of the groups this device is part of} ],
 	"members": [ {ids of the member devices this group has} ]
@@ -215,7 +216,7 @@ Default: 60000[ms].
 Sets the interval for the API's automatic device discovery. This ensures that devices can be connected faster and handles address changes.
 
 ##### /discoveryRuns/{value}
-Default: 2.
+Default: 4.
 Sets how often the API's automatic device discovery should discover devices per interval. Flaky device discovery is a problem especially for group managment. Sometimes device discovery doesn't return all groups, which breaks group playback detection. Running group discovery multiple times and merging the results ensures a more reliable group detection.
 
 ##### /groupManagement/{true/false}
