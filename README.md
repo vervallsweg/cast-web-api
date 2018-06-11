@@ -158,12 +158,29 @@ Returns a response object. Requires a JSON array with the media information in t
 
 It uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember: always check device compatibility (formats, screen available) before casting your media to a device!
 
-Google TTS is also supported. The text you would like to be read out is in mediaTitle. On the cast device mediaTitle and subtitle will be swapped. Every other attribute is still required except for mediaType, mediaUrl, mediaStreamType which will be overwritten. Requires one more attribute to the JSON array.
+```
+[
+	{
+		"mediaTitle":"Radio station",
+		"mediaSubtitle": "My favourite radio station",
+		"mediaType":"audio/mp3",
+		"mediaUrl":"http://example.com/stream.mp3",
+		"mediaStreamType":"LIVE",
+		"mediaImageUrl":"http://example.com/image.png"
+	},
+	{
+		... //optionally add more items to the queue
+	}
+]
+```
+
+Google TTS is also supported. The text you would like to be read out is in mediaTitle. On the cast device mediaTitle and subtitle will be swapped. Every other attribute is still required except for mediaType, mediaUrl, mediaStreamType which will be overwritten. Requires one more attribute to the JSON array. It is currently limited to 200 characters.
 
 - googleTTS: [Language-code](https://cloud.google.com/speech-to-text/docs/languages "Language-code") of the text to read
 
+
 ```
-TODO: curl example
+curl -H "Content-Type: application/json" -d '[{ ... }]' http://{address}/device/{id}/playMedia/
 ```
 
 ##### /playMediaGet [deprecated]
