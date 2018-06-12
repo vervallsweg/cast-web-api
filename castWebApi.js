@@ -1339,6 +1339,7 @@ function setZonesCastDevice(castDevice, zones) {
 }
 
 function connectGroupMembersInit(castDevice) {
+	castDevice.event.on('statusChange', function() {
 		if (castDevice.members) {
 			if (castDevice.status.application) {
 				if (castDevice.status.application!='Backdrop' && castDevice.status.application!='') { //TODO: use isIdleScreen
