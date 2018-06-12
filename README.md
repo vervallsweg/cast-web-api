@@ -1,25 +1,20 @@
 # cast-web-api
-Quick and dirty Node.js web API for Google Cast enabled devices.
+Web API for Google Cast enabled devices, based on the [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
 
-This simple web API is based on the awesome [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
-
-However my code is **verry badly written and experimental, not intendend for any production environment!**
+This API is only intendend to be used on your local network **not for hosting on the public internet**.
 
 ## Installation
-Install cast-web-api as a command line utility. Check your permissions first!
-
 	$ npm install cast-web-api -g
 
 ## First steps
-You can simply run the command and the web-api should be up and running!
-
     $ cast-web-api
 
-The server runs on your network IP and port 3000 by default. If it cannot determine your ip it defaults to 127.0.0.1. Both parameters can be adjusted with the `--hostname` and  `--port` arguments:
+The server runs on your network IP:3000 by default. On error it defaults to 127.0.0.1. Adjustable via:
 
 	$ cast-web-api --hostname=192.168.0.11 --port=8080
 
-If you'd like to run the API in the background as a daemon [forever](https://github.com/foreverjs/forever "forever") is recommended
+## Run as daemon
+[Forever](https://github.com/foreverjs/forever "forever") is recommended:
 
 	$ npm install forever -g
 
@@ -39,11 +34,11 @@ Adjust the command to pass parameters via `crontab -e`. The vanilla node version
 
 ### Windows
 
-	> where cast-web-api
+	> cast-web-api --windows
 
-Copy the result path till the npm folder. Then append 'node_modules\cast-web-api' to it. Then change to the new directory:
+Copy the result path and change directory to it:
 
-	> cd C:\Users\name\AppData\Roaming\npm\node_modules\cast-web-api\
+	> cd {path you just copied}
 
 Finally you can also use forever.
 
@@ -52,190 +47,225 @@ Finally you can also use forever.
 
 ## Usage
 
-### Protocol
-Everything is HTTP GET. All parameters are part of the URL, no need for POST, etc.
+### Basics
+Every call uses HTTP. Only starting a new playback uses POST, everything else uses GET.
 
-### Request URLs
+A device will be managed by the API, after you accessed it through /device/{id} or ran any command on it successfully. The API will discover devices automatically, handle address changes and will try to reconnect to all managed devices if they become 'disconnected'.
 
-Request URLs are formated like this:
-
-    http://{hostname}:{port}/{request}?{parameter}={parameter_value}
-
-Example URL for setting the volume to 50%:
-
-    http://127.0.0.1:3000/setDeviceVolume?address=192.168.86.86&volume=0.5
-
-None of the parameters has to be put in '' or anything like that. Just paste it in.
-
-#### getDevices
-Returns a JSON Array of devices found on the network. Recent changes make installation easier but *device discovery [unreliable](https://github.com/vervallsweg/cast-web-api/issues/35 "unreliable") sometimes*.
+### /device
+Every request without a device command returns a device status object with the following format.
 ``` 
-[
-	[
-		"deviceName": "Chromecast-...",
-		"deviceFriendlyName": "Living room",
-		"deviceAddress": "192.168.0.12",
-		"devicePort": 8009
-	],
-	[
-		...
-	]
+{
+	"id": "abc1234a",
+	"name": "My Chromecast",
+	"connection": "{connected/disconnected}",
+	"address": {
+		"host": "192.168.43.21",
+		"port": "8009"
+	},
+	"status": {
+		"volume": 10,
+		"muted": {true/false},
+		"application": "Spotify",
+		"status": "{PLAYING/PAUSED/IDLE/BUFFERING}",
+		"title": "My song",
+		"subtitle": "Artist",
+		"image": "http://url.to/image",
+		"groupPlayback": {true/false, if device is member of group},
+		"groupPlayBackOn": {id, if device is member of group}
+	},
+	"groups": [ {ids of the groups this device is part of} ],
+	"members": [ {ids of the member devices this group has} ]
+}
+```
+Every request with a device command returns a simple JSON object with a response (response object). In addition to setting the HTTP response code to 200 (success), 404 (command unknown) or 500 (error occured).
+```
+{
+	"response": "{ok/error}",
+	{"error": "error message"}
+}
+```
+Please note that {a/b} refers to the possible values of a key and the brackets are not part of the response.
 
+#### /
+Returns a JSON array with device status objects of all devices that are/were connected to the API.
+```
+http://127.0.0.1/device/
+```
+
+#### /discover
+Manually starts device discovery. The currently used mdns packages makes installation easy but *device discovery [unreliable](https://github.com/vervallsweg/cast-web-api/issues/35 "unreliable") sometimes*. This is especially noticeable when using the API's group features. Audio groups can literally disappear because a discovery didn't return all the group devices. 
+
+```
+http://127.0.0.1/device/discover
+```
+
+#### /{connected/disconnected}
+Filters / for only connected/disconnected devices.
+```
+http://127.0.0.1/device/connected
+```
+
+#### /{device id}
+Returns the device status object of the specified device. This command also connects the device to the API. If no device with the specified id was found on the network it returns a response object with an error message.
+The device will show up in / and reconnected automaticaly, after this request (or any request with a device id) is completed successfully.
+```
+http://127.0.0.1/device/abc1234a/
+```
+
+##### /muted/{true/false}
+Returns a response object and (un-)mutes the device.
+```
+http://127.0.0.1/device/abc1234a/muted/true
+```
+
+##### /volume/{level}
+Returns a response object and sets the volume on the device. Level is an int value between 0-100.
+```
+http://127.0.0.1/device/abc1234a/volume/25
+```
+
+##### /play
+Returns a response object and continous playback on the device. If there's no playback on the device, or the receiver doesn't support playback control, it returns an error object.
+```
+http://127.0.0.1/device/abc1234a/play
+```
+
+##### /pause
+Returns a response object and pauses playback on the device. If there's no playback on the device, or the receiver doesn't support playback control, it returns an error object.
+```
+http://127.0.0.1/device/abc1234a/pause
+```
+
+##### /stop
+Returns a response object and stops playback on the device. If there's no playback on the device, or the receiver cannot be closed, it returns an error object.
+```
+http://127.0.0.1/device/abc1234a/stop
+```
+
+##### /image
+Proxies the image from the device's image url. Useful if your application can only access local content.
+
+##### /playMedia [HTTP POST]
+Returns a response object. Requires a JSON array with the media information in the request data.
+
+- mediaType: the Google Cast media type string, see: - [supported media](https://developers.google.com/cast/docs/media#media-type-strings "supported media"). Don't just use mp3 or mp4, the correct string from the doc is needed (e.g. audio/mp3).
+- mediaUrl: HTTP(S) url to your content
+- mediaStreamType: Stream type of media your media, see: - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
+- mediaTitle (->title)
+- mediaSubtitle (->subtitle)
+- mediaImageUrl (->images[0]): see - [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
+
+It uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember: always check device compatibility (formats, screen available) before casting your media to a device!
+
+```
+[
+	{
+		"mediaTitle":"Radio station",
+		"mediaSubtitle": "My favourite radio station",
+		"mediaType":"audio/mp3",
+		"mediaUrl":"http://example.com/stream.mp3",
+		"mediaStreamType":"LIVE",
+		"mediaImageUrl":"http://example.com/image.png"
+	},
+	{
+		... //optionally add more items to the queue
+	}
 ]
 ```
 
-    http://{host}/getDevices
+Google TTS is also supported. The text you would like to be read out is in mediaTitle. On the cast device mediaTitle and subtitle will be swapped. Every other attribute is still required except for mediaType, mediaUrl, mediaStreamType which will be overwritten. Requires one more attribute to the JSON array. It is currently limited to 200 characters.
 
+- googleTTS: [Language-code](https://cloud.google.com/speech-to-text/docs/languages "Language-code") of the text to read
 
-#### getDeviceStatus (address)
-**Returns DEVICE_STATUS,**
-
-which is JSON encoded and part of the Google Cast protocol.
-- address: IP adress:port of the Google Cast device, if no port is provided 8009 is assumed
-```
-http://{host}/getDeviceStatus?address={address}
-```
-
-#### setDeviceVolume (address) (volume) 
-**Returns DEVICE_STATUS,**
-
-and sets the device volume. The return value reflects the state of the device after the command was executed.
-- address: IP adress of the Google Cast device
-- volume: Float value from 0-1 (0.1=10%, 0.2=20%, ...)
-```
-http://{host}/setDeviceVolume?address={address}&volume={volume}
-```
-
-#### setDeviceMuted (address) (muted)
-**Returns DEVICE_STATUS,**
-
-and mutes or unmutes the device.
-- address: IP adress of the Google Cast device
-- muted: true / false
-```
-http://{host}/setDeviceMuted?address={address}&muted={muted}
-```
-
-#### getMediaStatus (address) (sessionId)
-**Returns MEDIA_STATUS,**
-
-which is JSON encoded and part of the cast protocol as well. 
-Can **only** be executed if something is loaded or playing on the device (sessionId must be set). Check for sessionId by using getDeviceStatus.
-- address: IP adress of the Google Cast device
-- sessionId: sessionId of the current active session
-```
-http://{host}/getMediaStatus?address={address}&sessionId={sessionId}
-```
-
-#### setMediaPlaybackPause (address) (sessionId) (mediaSessionId)
-**Returns MEDIA_STATUS,**
-
-and pauses currently playing media. mediaSessionId is included in getMediaStatus.
-- address: IP adress of the Google Cast device
-- sessionId: sessionId of the current active session
-- mediaSessionId: int
-```
-http://{host}/setMediaPlaybackPause?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
-```
-
-#### setMediaPlaybackPlay (address) (sessionId) (mediaSessionId)
-**Returns MEDIA_STATUS,**
-
-and plays currently loaded media.
-- address: IP adress of the Google Cast device
-- sessionId: sessionId of the current active session
-- mediaSessionId: int
-```
-http://{host}/setMediaPlaybackPlay?address={address}&sessionId={sessionId}&mediaSessionId={mediaSessionId}
-```
-
-#### setDevicePlaybackStop (address) (sessionId)
-**Returns DEVICE_STATUS, *not* MEDIA_STATUS,**
-
-and stops casting to the device, kills currently running session. 
-- address: IP adress of the Google Cast device
-- sessionId: sessionId of the current active session
-```
-http://{host}/setDevicePlaybackStop?address={address}&sessionId={sessionId}
-```
-
-#### setMediaPlayback (address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl)
-**Returns MEDIA_STATUS,**
-
-after playback of your custom media has started. For this it uses Google's [default media receiver](https://developers.google.com/cast/docs/receiver_apps#default "Default Media Receiver"). If you don't know what this is please **read the documentation first**, it is linked above and below. Remember, always check device compatibility (formats, screen available) before casting your media to a device! Oh and don't forget to url encode paramaters if necessary, the server will decode them.
-- address: IP adress of the Google Cast device
-- mediaType: the Google Cast media type string, see: [supported media](https://developers.google.com/cast/docs/media#media-type-strings "supported media"). Don't just use mp3 or mp4, the correct string from the doc is needed (e.g. audio/mp3).
-- mediaUrl: HTTP(S) url to your content
-- mediaStreamType: Kind of stream - [streamType](https://developers.google.com/cast/docs/reference/messages#MediaInformation "streamType")
-- mediaTitle (->title), mediaSubtitle(->subtitle), mediaImageUrl(->images[0]): see [generic media metadata](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata "generic media metadata")
-```
-http://{host}/setMediaPlayback?address={address}&mediaType={mediaType}&mediaUrl={mediaUrl}&mediaStreamType={mediaStreamType}&mediaTitle={mediaTitle}&mediaSubtitle={mediaSubtitle}&mediaImageUrl={mediaImageUrl}
-```
-
-#### setMediaPlaybackShort (address, mediaType, mediaUrl, mediaStreamType, mediaTitle, mediaSubtitle, mediaImageUrl)
-**Returns MEDIA_STATUS,**
-like setMediaPlayback but doesn't wait till the device has stopped buffering and is playing. Makes it possible to play really short media files, without receiving an error code.
-
-#### config
-See [server settings](https://github.com/vervallsweg/cast-web-api/#server-settings "server settings")
-
-### HTTP response codes
-The server will return an HTTP status code so you can quickly determin if the request was successful or not
-- 200: Successful communication with your Google Cast device requested JSON data is returned
-- 400: Parameters missing or in the wrong format, returns 'Parameter error'
-- 404: Requested URL doesn't match any function, returns 'Not found'
-- 500: Comunication with Cast device failed, enable debuging to check for possible errors
-
-## Server settings
-Basic settings can be set and read using the config request url or the corresponding command line argument. Server hostname and port can only be set from the command line (see: [First steps](https://github.com/vervallsweg/cast-web-api/#first-steps "First steps")). The requestUrl only supports setting one parameter at a time, multiple parameters will be ignored.
-
-### Usage
-```
-http://{hostname}/config?get={parameter}
-```
 
 ```
-http://{hostname}/config?set={parameter}&value={value}
-````
-Every successful get/set options returns a simple JSON with response: ok and the parameter value.
-```
-{"response": "ok", "networkTimeout": 2000}
+curl -H "Content-Type: application/json" -d '[{ ... }]' http://{address}/device/{id}/playMedia/
 ```
 
-### Modes
-Get, returns the parameter's value. Set, sets it to the specified value and returns the updated value.
+##### /playMediaGet [deprecated]
+Equal to /playMedia just using GET. Warning: Pasting a JSON array into the request query is not a great idea. Links can be truncated, encoded/decoded wrong, leading to playback errors in the best case. Use /playMedia whenever possible!
 
-### Parameters
-#### networkTimeout (ms) [2000]
-Sets the time for the server to wait for an answer from the cast device. By default it is set to 2000ms (2s). If a response is received by the API earlier than the timeout, it will be returned immediately.
+##### /subscribe/{callback address}
+Creates a subscription for the selected device. When the device's status object changes (i.e. volume/playback changes) the new status update is send to the callback address. For now it only supports http callbacks and only one per device. If you call this path again for the same device, with a different callback address, the old callback will be overwritten.
+```
+http://127.0.0.1/device/abc1234a/subscribe/127.0.0.2:8080
+```
 
-#### appLoadTimeout (ms) [5000]
-Time for the server to wait untill your custom media is `PLAYING`. Depends on media type, size, network and device performance. **Especially groups can take longer than 5s to start playback**, adjust timeout accordingly.
+##### /unsubscribe
+Removes all subscriptions from the selected device.
+```
+http://127.0.0.1/device/abc1234a/unsubscribe
+```
 
-#### currenRequestId (ms) [1]
-The Cast protocoll requires a requestId for each request made to a device. The API creates a unique requestId for each request by incrementing the initial value: currentRequestId.
+##### /remove
+Disconnects the selected device and it will no longer be managed by the API.
+```
+http://127.0.0.1/device/abc1234a/remove
+```
 
-#### discoveryTimeout (ms) [4000]
-Sets the time for the server to wait for all Cast devices on the network to reply on discovery. Increase this value if you're having difficulties discovering all devices on your network. 
+#### /config
+``` 
+{
+	parameter: value
+}
+```
+Returns all config parameters with the current value. 
 
-#### version (string, get only)
-Returns the version number of the current installation.
 
-#### latestVersion (string, get only)
-The latest version available from GitHub master.
+Requests with just the parameter specified return it's current value. If the request also includes a /value it will be changed.
+Returns a json object with parameter:value.
+```
+http://127.0.0.1/config/timeoutDiscovery/		//Returns current value
+http://127.0.0.1/config/timeoutDiscovery/6000		//Returns 6000 and sets timeoutDiscovery to 6000[ms]
+```
+
+##### /timeoutDiscovery/{value}
+Default: 5000[ms].
+Sets the time for the server to wait for all Cast devices on the network to reply on discovery. Increase this value if you're having difficulties discovering all devices on your network.
+
+##### /reconnectInterval/{value}
+Default: 300000[ms].
+The amount of time after which the API attempts to reconnect to a device in /device.
+
+##### /discoveryInterval/{value}
+Default: 60000[ms].
+Sets the interval for the API's automatic device discovery. This ensures that devices can be connected faster and handles address changes.
+
+##### /discoveryRuns/{value}
+Default: 4.
+Sets how often the API's automatic device discovery should discover devices per interval. Flaky device discovery is a problem especially for group managment. Sometimes device discovery doesn't return all groups, which breaks group playback detection. Running group discovery multiple times and merging the results ensures a more reliable group detection.
+
+##### /groupManagement/{true/false}
+Default: true.
+Group-management automatically connects all group members if a cast group is connected to the API. This allows for more reliable group playback detection.
+
+##### /version
+Returns "this" and "latest" versions.
+
+##### /version/this
+API version you're currently running.
+
+##### /version/latest
+Latest API version available on GitHub.
 
 ## Debugging
+Every log output follows this format: {time} {device id} {function name}: {message}. For easy differentiation between those components, device id is inverted in color and function name underlined. Info messages appear in your standard terminal color. Error messages in red, warning messages in red and server related messages in blue.
+```
+2018-03-31T18:27:09.508Z a90824f40764eb5df1fccc4f5cb95dd3 reconnectionManagement(): reconnecting
+```
+
 cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
 
     $ DEBUG=cast-web-api node (yourdirectory)/castWebApi.js
 
-If you require further information you can enable debugging for the underlying castv2 module. You can either set the scope to castv2 or to everything *:
+If you need further information you can enable debugging for the underlying castv2 module. You can either set the scope to castv2 or to everything:
 
-    $ DEBUG=* node (yourdirectory)/castWebApi.js
+	$ DEBUG=* node (yourdirectory)/castWebApi.js
 
 ## Further information
 [thibauts](https://github.com/thibauts "thibauts profile") wrote a great [protocol description](https://github.com/thibauts/node-castv2#protocol-description "protocol description"). I can only highly recommend reading it.
 
 If you read the first sentences of this file it goes without saying that you **should not** run this API on the internet. Run it behind a firewall only in your local network!
 
-If you find a bug or typo, feel free to contact me, open an issue, fork it, fix it yourself and open a pull request, you name it.
+If you find a bug or typo, feel free to contact me, open an issue, fork it, open prs, you name it.
