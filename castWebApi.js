@@ -13,10 +13,7 @@ const CastDevice = require('./cast-device');
 
 var hostname = '127.0.0.1';
 var port = 3000;
-var timeoutDiscovery = 5000;
-var reconnectInterval = 300000;
-var discoveryInterval = 60000;
-var discoveryRuns = 4;
+var reconnectInterval = 300000; //TODO: params!
 var groupManagement = true;
 var windows = false;
 var thisVersion = pkg.version;
@@ -42,6 +39,56 @@ function startApi() {
 		devices.push(newDevice);
 	});
 
+	browser.on('deviceDown', device => {
+		var targetDevice = getDevice(device.id);
+
+		if (targetDevice) {
+			targetDevice.disconnect();
+		}
+	});
+
+	browser.on('deviceChange', change => {
+		var targetDevice = getDevice(change.id);
+
+		if (targetDevice) {
+			if (change.kind == 'name') {
+				targetDevice.name = change.value;
+			}
+			if (change.kind == 'address') {
+				targetDevice.setAddress(change.value); //TODO: implement .setAdress();
+			}
+		}
+	});
+
+	browser.on('groupsUp', groups => {
+		console.log('groupsUp: '+JSON.stringify(groups));
+		var targetDevice = getDevice(groups.id);
+
+		if (targetDevice) {
+			if (groups.groups) {
+				groups.groups.forEach(function(group) {
+					var groupDevice = getDevice(group);
+					if (groupDevice) {
+						targetDevice.setGroups(groupDevice);
+					}
+				});
+			}
+		}
+	});
+
+	browser.on('groupsDown', groups => {
+		console.log('groupsDown: '+JSON.stringify(groups));
+		var targetDevice = getDevice(groups.id);
+
+		if (targetDevice) {
+			if (groups.groups) {
+				groups.groups.forEach(function(group) {
+					targetDevice.removeGroups(group);
+				});
+			}
+		}
+	});
+
 	createWebServer();
 }
 
@@ -57,17 +104,8 @@ function interpretArguments() {
 	if (args.port) {
 		port = args.port;
 	}
-	if (args.timeoutDiscovery) {
-		timeoutDiscovery = args.timeoutDiscovery;
-	}
 	if (args.reconnectInterval) {
 		reconnectInterval = args.reconnectInterval;
-	}
-	if (args.discoveryInterval) {
-		discoveryInterval = args.discoveryInterval;
-	}
-	if (args.discoveryRuns) {
-		discoveryRuns = args.discoveryRuns;
 	}
 	if (args.groupManagement) {
 		groupManagement = (args.groupManagement == 'true');
@@ -443,6 +481,21 @@ function removeDevice(id) {
 		if (targetIndex!=null) {
 			devices.splice(targetIndex, 1)
 		}
+	}
+}
+
+function connectGroups(castDevice) {
+	log('info', 'connectGroups()', '', castDevice.id);
+	if (castDevice.groups) {
+		castDevice.groups.forEach(function(groupId) {
+			var group = getDevice(groupId);
+
+			if (group) {
+				if (group.link == 'disconnected') {
+					group.connect();
+				}
+			}
+		});
 	}
 }
 

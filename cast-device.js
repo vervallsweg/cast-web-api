@@ -29,23 +29,59 @@ class CastDevice {
 		}
 
 		var that = this;
-		//reconnectionManagementInit
+
 		this.event.on('linkChanged', function() {
+			//reconnectionManagementInit
 			that.reconnectionManagement();
-		});
-		
-		//subscriptionInit;
-		this.event.on('statusChange', function() {
+
+			//send callbacks
 			if (that.callback) {
 				//log('info', 'CastDevice.subscriptionInit()', 'castDevice.toString(): '+JSON.stringify( castDevice.toString() )+', '+JSON.stringify( castDevice.callback ), castDevice.id);
 				that.sendCallBack( that.toString() );
 			}
-		});
 
-		this.event.on('linkChanged', function() {
+			//auto connect groups
+			if (that.link == 'connected' || that.link == 'connecting') {
+				if (that.groups) {
+					that.groups.forEach(function(group) {
+						if (group.link != 'connected' || group.link != 'connecting') {
+							group.connect();
+							group.once('linkChanged', function() {
+								that.event.emit('statusChange');
+							});
+						}
+					});
+				}
+			}
+		});
+		
+		//subscriptionInit;
+		this.event.on('statusChange', function() {
+			//send callbacks
 			if (that.callback) {
 				//log('info', 'CastDevice.subscriptionInit()', 'castDevice.toString(): '+JSON.stringify( castDevice.toString() )+', '+JSON.stringify( castDevice.callback ), castDevice.id);
 				that.sendCallBack( that.toString() );
+			}
+
+			//sync group content
+			if (that.groups) {
+				var groupPlayback = false;
+				if (that.castConnectionReceiver) {
+					if (that.castConnectionReceiver.sessionId) {
+						that.groups.forEach(function(group) {
+							if (group.castConnectionReceiver) {
+								if (group.castConnectionReceiver.sessionId) {
+									if (that.castConnectionReceiver.sessionId == group.castConnectionReceiver.sessionId) {
+										console.log('groupPlayback: '+groupPlayback);
+										groupPlayback = true;
+										console.log('groupPlayback: '+groupPlayback);
+									}
+								}
+							}
+						});
+					}
+				}
+				that.setStatus('groupPlayback', groupPlayback);
 			}
 		});
 	}
@@ -297,9 +333,33 @@ class CastDevice {
 			connection: this.link,
 			address: this.address,
 			status: this.status,
-			groups: this.groups,
+			groups: this.getGroups(),
 			members: this.members
 		}
+	}
+
+	setGroups(group) {
+		if (!this.groups) {
+			this.groups = [];
+		}
+		if (this.link == 'connected' || this.link == 'connecting') {
+			group.connect();
+		}
+		this.groups.push(group);
+	}
+
+	getGroups() {
+		var ids = [];
+		if (this.groups) {
+			this.groups.forEach(function(group){
+				ids.push(group.id);
+			});
+		}
+		return ids;
+	}
+
+	removeGroups(group) {
+		//TODO:
 	}
 
 	volume(targetLevel) {
@@ -497,7 +557,7 @@ class CastDevice {
 						log('info', 'reconnectionManagement()', 'reconnecting', that.id);
 						that.connect();
 					}
-				}, reconnectInterval); //params!
+				}, 300000); //TODO: params!
 			}
 		} else {
 			log('debug', 'reconnectionManagement()', 'interval evaluating', this.id);
