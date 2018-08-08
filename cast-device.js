@@ -46,9 +46,6 @@ class CastDevice {
 					that.groups.forEach(function(group) {
 						if (group.link != 'connected' || group.link != 'connecting') {
 							group.connect();
-							group.once('linkChanged', function() {
-								that.event.emit('statusChange');
-							});
 						}
 					});
 				}
@@ -65,23 +62,7 @@ class CastDevice {
 
 			//sync group content
 			if (that.groups) {
-				var groupPlayback = false;
-				if (that.castConnectionReceiver) {
-					if (that.castConnectionReceiver.sessionId) {
-						that.groups.forEach(function(group) {
-							if (group.castConnectionReceiver) {
-								if (group.castConnectionReceiver.sessionId) {
-									if (that.castConnectionReceiver.sessionId == group.castConnectionReceiver.sessionId) {
-										console.log('groupPlayback: '+groupPlayback);
-										groupPlayback = true;
-										console.log('groupPlayback: '+groupPlayback);
-									}
-								}
-							}
-						});
-					}
-				}
-				that.setStatus('groupPlayback', groupPlayback);
+				//now in .setGroups()
 			}
 		});
 	}
@@ -338,7 +319,37 @@ class CastDevice {
 		}
 	}
 
+	getStatusGroup() {
+		var status = this.toString().status;
+		return [
+			{ 'key': 'application', 'value': status.application },
+			{ 'key': 'status', 'value': status.status },
+			{ 'key': 'title', 'value': status.title },
+			{ 'key': 'subtitle', 'value': status.subtitle },
+			{ 'key': 'image', 'value': status.image },
+		];
+	}
+
 	setGroups(group) {
+		var that = this;
+		group.event.on('statusChange', function() {
+			if (group.castConnectionReceiver) {
+				if (group.castConnectionReceiver.sessionId) {
+					that.setStatus('groupPlayback', group.id);
+					that.setStatusArray( group.getStatusGroup() );
+				} else {
+					if (that.status.groupPlayback == group.id) {
+						that.setStatus('groupPlayback', false);
+					} else {
+						console.log('not removing groupPlayback on:'+that.id);
+					}
+				}
+			}
+		});
+
+		//checking for playback
+		group.event.emit('statusChange');
+
 		if (!this.groups) {
 			this.groups = [];
 		}
@@ -428,6 +439,13 @@ class CastDevice {
 				this.event.emit('statusChange');
 			}
 		}
+	}
+
+	setStatusArray(values) {
+		var that = this;
+		values.forEach(function(value) {
+			that.setStatus(value.key, value.value);
+		});
 	}
 
 	playMedia(media) {
