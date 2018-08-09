@@ -68,6 +68,21 @@ class CastDevice {
 		});
 	}
 
+	setAddress(newAddress, originalLink) {
+		if (this.link != 'disconnected') {
+			this.disconnect();
+			var that = this;
+			this.event.once('linkChanged', function(){
+				that.setAddress(newAddress, 'connected');
+			});
+		} else {
+			this.address = newAddress;
+			if (originalLink == 'connected') {
+				this.connect();
+			}
+		}
+	}
+
 	connect() {
 		try {
 			log('info', 'CastDevice.connect()', 'host: ' + this.address.host + ', port: ' + this.address.port, this.id );
@@ -109,9 +124,8 @@ class CastDevice {
 								that.castConnectionReceiver.heartbeat.send({ type: 'PING' });
 							} catch (e) {
 								log('error', 'CastDevice.connect() castConnectionReceiver.heartBeatIntervall', 'exception: '+e, that.id);
-								that.disconnect(); //TODO:
+								that.disconnect();
 							}
-							
 						}
 					}, 5000);
 				} catch (e) {
@@ -225,7 +239,7 @@ class CastDevice {
 					//castDevice.castConnectionMedia = null;
 				}
 			} catch(e) {
-				log('error', 'CastDevice.disconnectMedia()', 'exception: '+e, this.id); //TODO: Notify subscriber
+				log('error', 'CastDevice.disconnectMedia()', 'exception: '+e, this.id);
 				//castDevice.castConnectionMedia = null;
 			}
 		}
@@ -370,8 +384,21 @@ class CastDevice {
 		return ids;
 	}
 
-	removeGroups(group) {
-		//TODO:
+	removeGroups(groupToRemove) {
+		var that = this;
+		if (this.status.groupPlayback == groupToRemove) {
+			//groupToRemove offline > remvoing group playback for this member
+			this.setStatus('groupPlayback', false);
+		}
+
+		if (this.groups) {
+			this.groups.forEach(function(group, index) {
+				if (group.id == groupToRemove) {
+					this.groups.splice(index, 1); //TODO: better solution for parallel access
+					console.log(this.id+' ::: removed group: '+groupToRemove);
+				}
+			});
+		}
 	}
 
 	volume(targetLevel) {
@@ -525,7 +552,7 @@ class CastDevice {
 								messages[messagesIndex] = chunk.substring(0, 200);
 								chunk = chunk.substring(200);
 							}
-							if (messages[messagesIndex].length+1+chunk.length <= 200) { // TODO: hard cut if chunk.length > 200
+							if (messages[messagesIndex].length+1+chunk.length <= 200) {
 								messages[messagesIndex] = messages[messagesIndex]+' '+chunk;
 								added = true;
 							} else {
@@ -555,7 +582,6 @@ class CastDevice {
 						var messageParts = splitGoogleTTS(mediaElement.media.metadata.title);
 
 						messageParts.forEach(function(part, partIndex) {
-							//TODO: create new mediaElement with same params, .title = part
 							var newMediaElement = JSON.parse(JSON.stringify(mediaElement));
 							newMediaElement.media.metadata.title = part;
 							console.log('partIndex: '+partIndex+', part: '+ part + ', mediaList: '+JSON.stringify(mediaList));

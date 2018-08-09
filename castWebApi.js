@@ -55,7 +55,7 @@ function startApi() {
 				targetDevice.name = change.value;
 			}
 			if (change.kind == 'address') {
-				targetDevice.setAddress(change.value); //TODO: implement .setAdress();
+				targetDevice.setAddress(change.value);
 			}
 		}
 	});
