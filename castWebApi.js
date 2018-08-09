@@ -10,6 +10,7 @@ const util = require('util');
 const querystring = require('querystring');
 const chalk = require('chalk');
 const CastDevice = require('./cast-device');
+const Assistant = require('./google-assistant');
 
 var hostname = '127.0.0.1';
 var port = 3000;
@@ -19,6 +20,7 @@ var windows = false;
 var thisVersion = pkg.version;
 
 var devices = [];
+var assistant = false;
 
 interpretArguments();
 if (!windows) {
@@ -378,6 +380,45 @@ function createWebServer() {
 				}
 			}
 
+			if (path[1]=="assistant") {
+				if (path[2]) {
+					if (path[2]=="setup") {
+						res.statusCode = 200;
+						res.end( 'Coming soon.' );
+					} else {
+						getAssistantReady()
+						.then(ready => {
+							if (path[2]=="broadcast") {
+								if (path[3]) {
+									assistant.broadcast( decodeURI(path[3]) );
+									res.statusCode = 200;
+									res.end(JSON.stringify( { response:'ok' } ));
+								}
+							}
+							if (path[2]=="command") {
+								if (path[3]) {
+									assistant.command( decodeURI(path[3]) );
+									res.statusCode = 200;
+									res.end(JSON.stringify( { response:'ok' } ));
+								}
+							}
+						})
+						.catch(errorMessage => {
+							res.statusCode = 500;
+							res.end( JSON.stringify( { response: error, error: errorMessage } ) );
+						})
+					}
+				} else {
+					if (assistant) {
+						res.statusCode = 200;
+						res.end(JSON.stringify( { assistant:true, ready:assistant.ready } ));
+					} else {
+						res.statusCode = 200;
+						res.end(JSON.stringify( { assistant:false, ready:false } ));
+					}
+				}
+			}
+
 			if (path[1]=="memdump") {
 				res.statusCode = 200;
 				log( 'server', 'memory dump', util.inspect(devices) );
@@ -535,6 +576,44 @@ function getLatestVersion() {
 		setTimeout(() => {
 			reject('request timeout');
 		}, 5000);
+	});
+}
+
+function getAssistantReady() {
+	return new Promise( function(resolve, reject) {
+		console.log('getAssistantReady()');
+		try {
+			if (!assistant) {
+				console.log('no assistant, creating new Assistant');
+				assistant = new Assistant();
+
+				assistant.on('ready', function() {
+					console.log('googleAssistant on ready');
+					resolve('ready');
+				});
+
+				assistant.on('error', error => {
+					console.log('googleAssistant on error');
+					reject(error);
+				});
+			} else {
+				console.log('assistant exists');
+				if (assistant.ready) {
+					console.log('assistant ready');
+					resolve('ready');
+				} else {
+					console.log('assistant not ready');
+					reject('not ready');
+				}
+			}
+
+			setTimeout(function() {
+				reject('Error while accessing Google Assistant.');
+			}, 5000);
+		} catch (e) {
+			reject(e);
+		}
+		
 	});
 }
 

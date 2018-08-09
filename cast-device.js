@@ -46,6 +46,7 @@ class CastDevice {
 				if (that.groups) {
 					that.groups.forEach(function(group) {
 						if (group.link != 'connected' || group.link != 'connecting') {
+							group.link = 'connecting';
 							group.connect();
 						}
 					});
@@ -155,7 +156,7 @@ class CastDevice {
 				clearInterval(this.castConnectionReceiver.heartBeatIntervall);
 				//castDevice.castConnectionReceiver.connection.send({ type: 'CLOSE' });
 				this.castConnectionReceiver.client.close();
-				//castDevice.castConnectionReceiver = null;
+				delete this.castConnectionReceiver;
 			}
 		} catch (e) {
 			//castDevice.castConnectionReceiver = null;
@@ -236,7 +237,7 @@ class CastDevice {
 					this.status.subtitle = '';
 					this.status.image = '';
 					this.event.emit('statusChange');
-					//castDevice.castConnectionMedia = null;
+					delete this.castConnectionMedia;
 				}
 			} catch(e) {
 				log('error', 'CastDevice.disconnectMedia()', 'exception: '+e, this.id);
@@ -355,8 +356,6 @@ class CastDevice {
 				} else {
 					if (that.status.groupPlayback == group.id) {
 						that.setStatus('groupPlayback', false);
-					} else {
-						console.log('not removing groupPlayback on:'+that.id);
 					}
 				}
 			}
@@ -369,7 +368,10 @@ class CastDevice {
 			this.groups = [];
 		}
 		if (this.link == 'connected' || this.link == 'connecting') {
-			group.connect();
+			if (group.link != 'connected' || group.link != 'connecting') {
+				group.link = 'connecting';
+				group.connect();
+			}
 		}
 		this.groups.push(group);
 	}
