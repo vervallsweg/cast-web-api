@@ -1,6 +1,6 @@
 {
 	"name": "cast-web-api",
-	"version": "1.1.0-rc1",
+	"version": "1.1.0-rc5",
 	"author": "Tobias Haerke",
 	"engines": {
 		"node": ">= 6.0.0"
@@ -15,15 +15,15 @@
 	"dependencies": {
 		"castv2": "*",
 		"castv2-client": "^1.2.0",
-		"chalk": "^2.4.0",
+		"chalk": "^2.4.1",
 		"debug": "^2.6.9",
+		"google-tts-api": "*",
 		"http": "*",
-		"mdns-cast-browser": "^1.0.0",
+		"mdns-cast-browser": ">1.0.1",
 		"minimist": "*",
-		"node-fetch": "^2.1.2",
+		"node-fetch": "^2.2.0",
 		"os": "*",
-		"url": "*",
-		"google-tts-api": "*"
+		"url": "*"
 	},
 	"repository": {
 		"type": "git",

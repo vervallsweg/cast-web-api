@@ -6,6 +6,7 @@ const googleTTS = require('google-tts-api');
 const chalk = require('chalk');
 const debug = require('debug')('cast-web-api');
 const url = require('url');
+const http = require('http');
 
 class CastDevice {
 	constructor(id, address, name) {
@@ -509,8 +510,65 @@ class CastDevice {
 
 	replaceGoogleTts(mediaList) {
 		return new Promise( function(resolve, reject) {
+			function splitGoogleTTS(message) {
+				var messageChunks = message.split(' ');
+				var messagesIndex = 0;
+				var messages = [];
+
+				messageChunks.forEach(function(chunk) {
+					var added = false;
+
+					while(added == false) {
+						if (messages[messagesIndex]) {
+							if (chunk.length > 200) {
+								messagesIndex++;
+								messages[messagesIndex] = chunk.substring(0, 200);
+								chunk = chunk.substring(200);
+							}
+							if (messages[messagesIndex].length+1+chunk.length <= 200) { // TODO: hard cut if chunk.length > 200
+								messages[messagesIndex] = messages[messagesIndex]+' '+chunk;
+								added = true;
+							} else {
+								messagesIndex++;
+							}
+						} else {
+							if (chunk.length > 200) {
+								messages[messagesIndex] = chunk.substring(0, 200);
+								chunk = chunk.substring(200);
+								messagesIndex++;
+							}
+							messages[messagesIndex] = chunk;
+							added = true;
+						}
+					}
+				});
+
+				return messages;
+			};
+
 			var googleTTSPromised = 0;
 			var googleTTSResolved = 0;
+
+			mediaList.forEach(function(mediaElement, index){
+				if (mediaElement.googleTTS && mediaElement.googleTTS!=null) {
+					if (mediaElement.media.metadata.title.length > 200) {
+						var messageParts = splitGoogleTTS(mediaElement.media.metadata.title);
+
+						messageParts.forEach(function(part, partIndex) {
+							//TODO: create new mediaElement with same params, .title = part
+							var newMediaElement = JSON.parse(JSON.stringify(mediaElement));
+							newMediaElement.media.metadata.title = part;
+							console.log('partIndex: '+partIndex+', part: '+ part + ', mediaList: '+JSON.stringify(mediaList));
+							if (partIndex == 0) {
+								mediaList.splice(index, 1, newMediaElement);
+							} else {
+								mediaList.splice(index+1, 0, newMediaElement);
+							}
+							
+						});
+					}
+				}
+			});
 
 			mediaList.forEach(function(mediaElement){
 				if (mediaElement.googleTTS && mediaElement.googleTTS!=null) {
@@ -646,7 +704,7 @@ class CastDevice {
 			req.write(data);
 			req.end();
 		} catch (e) {
-			log('error', 'sendCallBack()', 'cannot send callback: ' + JSON.stringify(this.callback) + ', error: ' + error, this.id);
+			log('error', 'sendCallBack()', 'cannot send callback: ' + JSON.stringify(this.callback) + ', error: ' + e, this.id);
 		}
 	}
 }

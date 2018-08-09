@@ -1,5 +1,5 @@
 const http = require('http');
-const CastBrowser = require('../mdns-cast-browser/cast-browser');
+const CastBrowser = require('mdns-cast-browser');
 const url = require('url');
 const debug = require('debug')('cast-web-api');
 const args = require('minimist')(process.argv.slice(2));
