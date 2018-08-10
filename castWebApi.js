@@ -10,7 +10,7 @@ const util = require('util');
 const querystring = require('querystring');
 const chalk = require('chalk');
 const CastDevice = require('./cast-device');
-const Assistant = require('./google-assistant');
+const Assistant = require('./assistant/google-assistant');
 
 var hostname = '127.0.0.1';
 var port = 3000;
@@ -405,7 +405,7 @@ function createWebServer() {
 						})
 						.catch(errorMessage => {
 							res.statusCode = 500;
-							res.end( JSON.stringify( { response: error, error: errorMessage } ) );
+							res.end( JSON.stringify( { response: 'error', error: errorMessage } ) );
 						})
 					}
 				} else {
@@ -608,12 +608,13 @@ function getAssistantReady() {
 			}
 
 			setTimeout(function() {
-				reject('Error while accessing Google Assistant.');
+				console.log('timeout');
+				reject('Timeout while accessing Google Assistant.');
 			}, 5000);
 		} catch (e) {
+			console.log('exception: '+e);
 			reject(e);
 		}
-		
 	});
 }
 

@@ -1,6 +1,12 @@
+var GoogleAssistant = null;
 const Events = require('events');
 const path = require('path');
-const GoogleAssistant = require('google-assistant');
+try {
+	GoogleAssistant = require('google-assistant');	
+} catch (e) {
+	console.log('GoogleAssistant require error: '+e);
+}
+
 const config = {
 	auth: {
 		keyFilePath: path.resolve(__dirname, './client_secret.json'),
@@ -14,20 +20,32 @@ const config = {
 class Assistant extends Events {
 	constructor() {
 		super();
-
-		var that = this;
-		this.assistant = new GoogleAssistant(config.auth);
+		this.assistant = false;
 		this.ready = false;
 
-		this.assistant.on('ready', function() {
-			that.ready = true;
-			that.emit('ready');
-		});
-	    this.assistant.on('error', error => {
-			that.emit('error', 'Assistant Error: '+error);
-			//console.log('Assistant Error:', error);
-			that.ready = false; // Correct???
-		});
+		if (GoogleAssistant) {
+			try {
+				this.assistant = new GoogleAssistant(config.auth);
+				this.ready = false;
+				var that = this;
+
+				this.assistant.on('ready', function() {
+					that.ready = true;
+					that.emit('ready');
+				});
+				this.assistant.on('error', error => {
+					that.emit('error', 'Assistant Error: '+error);
+					//console.log('Assistant on error: '+error);
+					that.ready = false; // Correct???
+				});
+			} catch (e) {
+				//console.log('Assistant exception: '+e);
+				this.emit('error', 'Assistant exception: '+e);
+			}
+		} else {
+			this.emit('error', 'google-assistant package is not installed');
+			console.log('NO GOOGLE Assistant!!!!!');
+		}
 	}
 
 	startConversation(conversation){

@@ -661,7 +661,7 @@ class CastDevice {
 						log('info', 'reconnectionManagement()', 'reconnecting', that.id);
 						that.connect();
 					}
-				}, 300000); //TODO: params!
+				}, 300000); //TODO: params! AND fix multiple reconnects if .conect() was called multiple times
 			}
 		} else {
 			log('debug', 'reconnectionManagement()', 'interval evaluating', this.id);
