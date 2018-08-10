@@ -1,21 +1,20 @@
 var GoogleAssistant = null;
 const Events = require('events');
 const path = require('path');
+const config = {
+	auth: {
+		keyFilePath: path.resolve(__dirname, './client_secret.json'),
+		savedTokensPath: path.resolve(__dirname, './tokens.json'),
+	},
+	conversation: {
+		lang: 'en-US',
+	}
+};
 try {
 	GoogleAssistant = require('google-assistant');	
 } catch (e) {
 	console.log('GoogleAssistant require error: '+e);
 }
-
-const config = {
-	auth: {
-		keyFilePath: path.resolve(__dirname, './client_secret.json'),
-		savedTokensPath: path.resolve(__dirname, './tokens.json'), // where you want the tokens to be saved
-	},
-	conversation: {
-		lang: 'en-US', // defaults to en-US, but try other ones, it's fun!
-	}
-};
 
 class Assistant extends Events {
 	constructor() {
@@ -50,7 +49,11 @@ class Assistant extends Events {
 
 	startConversation(conversation){
 		// setup the conversation
-		conversation.on('response', text => console.log('Assistant Response:', text));
+		var that = this; // << undefined 
+		conversation.on('response', text => {
+			console.log('Assistant Response:', text);
+			//that.emit('response', text); // << undefined 
+		});
 			// if we've requested a volume level change, get the percentage of the new level
 		conversation.on('volume-percent', percent => console.log('New Volume Percent:', percent));
 			// the device needs to complete an action
@@ -80,12 +83,22 @@ class Assistant extends Events {
 	};
 
 	command(command) {
-		if (this.ready) {
-			config.conversation.textQuery = ''+command;
-			this.assistant.start(config.conversation, this.startConversation);
-		} else {
-			this.emit('error', 'Assistant is not ready.');
-		}
+		var that = this;
+		return new Promise( function(resolve, reject) {
+			if (that.ready) {
+				config.conversation.textQuery = ''+command;
+				that.assistant.start(config.conversation, that.startConversation);
+
+				that.on('response', response =>{
+					resolve(response);
+				});
+				that.on('error', response =>{
+					reject(error);
+				});
+			} else {
+				that.emit('error', 'Assistant is not ready.');
+			}
+		});
 	};
 }
 

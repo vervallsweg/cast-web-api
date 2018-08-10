@@ -19,14 +19,17 @@
 		"debug": "^2.6.9",
 		"google-tts-api": "*",
 		"http": "*",
+		"jsonfile": "^4.0.0",
 		"mdns-cast-browser": ">1.0.1",
 		"minimist": "*",
 		"node-fetch": "^2.2.0",
 		"os": "*",
-		"url": "*"
+		"url": "*",
+		"jsonfile": "*",
+		"google-auth-library":"*"
 	},
 	"optionalDependencies": {
-		"google-assistant": "*"
+		"google-assistant": "^0.5.2"
 	},
 	"repository": {
 		"type": "git",

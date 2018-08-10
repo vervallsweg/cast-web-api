@@ -11,6 +11,8 @@ const querystring = require('querystring');
 const chalk = require('chalk');
 const CastDevice = require('./cast-device');
 const Assistant = require('./assistant/google-assistant');
+const jsonfile = require('jsonfile');
+const OAuth2 = new (require('google-auth-library'))().OAuth2;
 
 var hostname = '127.0.0.1';
 var port = 3000;
@@ -383,8 +385,48 @@ function createWebServer() {
 			if (path[1]=="assistant") {
 				if (path[2]) {
 					if (path[2]=="setup") {
-						res.statusCode = 200;
-						res.end( 'Coming soon.' );
+						if (path[3]=="id") {
+							if (path[4]) {
+								setClientID(path[4]);
+								res.statusCode = 200;
+								res.end( JSON.stringify( {response:'ok'} ) );
+							
+							}
+						}
+						if (path[3]=="secret") {
+							if (path[4]) {
+								setClientSecret(path[4]);
+								res.statusCode = 200;
+								res.end( JSON.stringify( {response:'ok'} ) );
+							}
+						}
+						if (path[3]=="token") {
+							if (path[4]) {
+								setToken(getRestOfPathArray(path, 4))
+								.then(response => {
+									res.statusCode = 200;
+									res.end( JSON.stringify( response ) );
+								})
+								.catch(error =>{
+									res.statusCode = 500;
+									res.end( JSON.stringify( { response: 'error', error: error } ) );
+								})
+							}
+						}
+						else if (path[3]=="getTokenUrl") {
+							generateTokenUrl()
+							.then(url => {
+								res.statusCode = 200;
+								res.end(JSON.stringify( { response: 'ok', url:url } ));
+							})
+							.catch(error =>{
+								res.statusCode = 500;
+								res.end( JSON.stringify( { response: 'error', error: error } ) );
+							})
+						} else {
+							res.statusCode = 200;
+							res.end( 'Coming soon.' );
+						}
 					} else {
 						getAssistantReady()
 						.then(ready => {
@@ -397,9 +439,16 @@ function createWebServer() {
 							}
 							if (path[2]=="command") {
 								if (path[3]) {
-									assistant.command( decodeURI(path[3]) );
-									res.statusCode = 200;
-									res.end(JSON.stringify( { response:'ok' } ));
+									assistant.command( decodeURI(path[3]) )
+									.then(response => {
+										res.statusCode = 200;
+										res.end(JSON.stringify( { response: response } ));
+									})
+									.then(error => {
+										res.statusCode = 500;
+										res.end( JSON.stringify( { response: 'error', error: error } ) );
+									})
+									
 								}
 							}
 						})
@@ -608,13 +657,131 @@ function getAssistantReady() {
 			}
 
 			setTimeout(function() {
-				console.log('timeout');
+				//console.log('timeout');
 				reject('Timeout while accessing Google Assistant.');
 			}, 5000);
 		} catch (e) {
 			console.log('exception: '+e);
 			reject(e);
 		}
+	});
+}
+
+function setClientID(clientID) {
+	readClientSecretJSON()
+	.then(existing =>{
+		existing.installed.client_id = clientID;
+		existing.installed.redirect_uris = ["urn:ietf:wg:oauth:2.0:oob"];
+		writeClientSecretJSON(existing);
+	})
+	.catch(error =>{
+		console.log('setClientID error: '+error);
+	})
+}
+
+function setClientSecret(clientSecret) {
+	readClientSecretJSON()
+	.then(existing =>{
+		existing.installed.client_secret = clientSecret;
+		existing.installed.redirect_uris = ["urn:ietf:wg:oauth:2.0:oob"];
+		writeClientSecretJSON(existing);
+	})
+	.catch(error =>{
+		console.log('setClientSecret error: '+error);
+	})
+}
+
+function writeClientSecretJSON(object) {
+	var file = './assistant/client_secret.json'
+
+	jsonfile.writeFile(file, object, function (err) {
+		console.error(err)
+	})
+}
+
+function readClientSecretJSON() {
+	return new Promise( function(resolve, reject) {
+		var file = './assistant/client_secret.json'
+
+		jsonfile.readFile(file, function(err, obj) {
+			if (obj) {
+				resolve(obj);
+			}
+			if (err) {
+				console.log('readClientSecretJSON error: '+err);
+				resolve({ installed:{} });
+			}
+		});
+	});
+}
+
+function setToken(oAuthCode) {
+	return new Promise( function(resolve, reject) {
+		readClientSecretJSON()
+		.then(existing =>{
+			if (existing.installed.client_id && existing.installed.client_secret && existing.installed.redirect_uris) {
+				try {
+					const oauthClient = new OAuth2(existing.installed.client_id, existing.installed.client_secret, existing.installed.redirect_uris[0]);
+					console.log('oAuthCode: '+oAuthCode);
+
+					oauthClient.getToken(oAuthCode, (error, tokens) => {
+						if (error) {
+							reject('Couldnot get tokens, error: '+error);
+						}
+
+						console.log("tokens: "+tokens);
+						writeToken(tokens);
+						resolve({response: 'ok'});
+					});
+				} catch (e) {
+					reject('setToken exception: '+e);
+				}
+			} else {
+				reject('setToken missing clientID / clientSecret');
+			}
+		})
+		.catch(error =>{
+			reject('setToken error: '+error);
+		})
+	});
+}
+
+function writeToken(token) {
+	var file = './assistant/tokens.json'
+	console.log('writeToken: '+JSON.stringify(token));
+
+	jsonfile.writeFile(file, token, function(err) {
+		console.log('writeToken error: '+err);
+	})
+}
+
+function generateTokenUrl() {
+	return new Promise( function(resolve, reject) {
+		readClientSecretJSON()
+		.then(existing =>{
+			if (existing.installed.client_id && existing.installed.client_secret && existing.installed.redirect_uris) {
+				try {
+					const oauthClient = new OAuth2(existing.installed.client_id, existing.installed.client_secret, existing.installed.redirect_uris[0]);
+
+					var url = oauthClient.generateAuthUrl({
+						access_type: 'offline',
+						scope: ['https://www.googleapis.com/auth/assistant-sdk-prototype'],
+					});
+
+					resolve(url);
+				} catch(e) {
+					reject('generateTokenUrl exception: '+e);
+				}
+				
+			} else {
+				reject('generateToken missing clientID / clientSecret');
+			}
+
+		})
+		.catch(error =>{
+			console.log('generateTokenUrl error: '+error);
+			reject(error);
+		})
 	});
 }
 
