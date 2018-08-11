@@ -13,6 +13,7 @@ const CastDevice = require('./cast-device');
 const Assistant = require('./assistant/google-assistant');
 const jsonfile = require('jsonfile');
 const OAuth2 = new (require('google-auth-library'))().OAuth2;
+const setup = require('./assistant/setup');
 
 var hostname = '127.0.0.1';
 var port = 3000;
@@ -151,9 +152,9 @@ function createWebServer() {
 			requestData = requestBuffer;
 			log('debug-server', 'requestData', requestData);
 
-			res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
 			if (path[1]=="device") {
+				res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
 				if (path[2]) {
 					if (path[2] == 'discover') {
 						discoverZones();
@@ -314,6 +315,8 @@ function createWebServer() {
 			}
 
 			if (path[1]=="config") {
+				res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
 				if (path[2]) {
 					if (path[2]=="timeoutDiscovery") {
 						if (path[3]) {
@@ -386,21 +389,26 @@ function createWebServer() {
 				if (path[2]) {
 					if (path[2]=="setup") {
 						if (path[3]=="id") {
+							res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
 							if (path[4]) {
 								setClientID(path[4]);
 								res.statusCode = 200;
 								res.end( JSON.stringify( {response:'ok'} ) );
-							
 							}
 						}
-						if (path[3]=="secret") {
+						else if (path[3]=="secret") {
+							res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
 							if (path[4]) {
 								setClientSecret(path[4]);
 								res.statusCode = 200;
 								res.end( JSON.stringify( {response:'ok'} ) );
 							}
 						}
-						if (path[3]=="token") {
+						else if (path[3]=="token") {
+							res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
 							if (path[4]) {
 								setToken(getRestOfPathArray(path, 4))
 								.then(response => {
@@ -414,6 +422,8 @@ function createWebServer() {
 							}
 						}
 						else if (path[3]=="getTokenUrl") {
+							res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
 							generateTokenUrl()
 							.then(url => {
 								res.statusCode = 200;
@@ -424,10 +434,27 @@ function createWebServer() {
 								res.end( JSON.stringify( { response: 'error', error: error } ) );
 							})
 						} else {
+							res.setHeader('Content-Type', 'text/html; charset=utf-8');
 							res.statusCode = 200;
-							res.end( 'Coming soon.' );
+
+							if (path[3]==1) {
+								res.end( setup.step1 );
+							}
+							if (path[3]==2) {
+								res.end( setup.step2 );
+							}
+							if (path[3]==3) {
+								res.end( setup.step3 );
+							} else {
+								res.end( setup.step1 );
+							}
+							
+							//console.log('setup: '+JSON.stringify(setup) );
+							
 						}
 					} else {
+						res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
 						getAssistantReady()
 						.then(ready => {
 							if (path[2]=="broadcast") {
@@ -469,12 +496,14 @@ function createWebServer() {
 			}
 
 			if (path[1]=="memdump") {
+				res.setHeader('Content-Type', 'application/json; charset=utf-8');
 				res.statusCode = 200;
 				log( 'server', 'memory dump', util.inspect(devices) );
 				res.end('ok');
 			}
 
 			if (path[1]=="") {
+				res.setHeader('Content-Type', 'application/json; charset=utf-8');
 				res.statusCode = 200;
 				res.end('{ "cast-web-api" : "v' + thisVersion + '" }')
 			}
