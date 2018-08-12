@@ -39,12 +39,13 @@ function startApi() {
 	browser.discover();
 
 	browser.on('deviceUp', device => {
-		console.log('deviceUp');
+		console.log('deviceUp: '+JSON.stringify(device));
 		var newDevice = new CastDevice(device.id, device.address, device.name);
 		devices.push(newDevice);
 	});
 
 	browser.on('deviceDown', device => {
+		console.log('deviceDown: '+JSON.stringify(device));
 		var targetDevice = getDevice(device.id);
 
 		if (targetDevice) {
@@ -53,6 +54,7 @@ function startApi() {
 	});
 
 	browser.on('deviceChange', change => {
+		console.log('deviceChange: '+JSON.stringify(change));
 		var targetDevice = getDevice(change.id);
 
 		if (targetDevice) {
@@ -74,7 +76,8 @@ function startApi() {
 				groups.groups.forEach(function(group) {
 					var groupDevice = getDevice(group);
 					if (groupDevice) {
-						targetDevice.setGroups(groupDevice);
+						targetDevice.setGroup(groupDevice);
+						groupDevice.setMember(targetDevice);
 					}
 				});
 			}
@@ -88,7 +91,11 @@ function startApi() {
 		if (targetDevice) {
 			if (groups.groups) {
 				groups.groups.forEach(function(group) {
-					targetDevice.removeGroups(group);
+					targetDevice.removeGroup(group);
+					var groupDevice = getDevice(group);
+					if (groupDevice) {
+						groupDevice.removeMember(targetDevice.id);
+					}
 				});
 			}
 		}
@@ -199,8 +206,7 @@ function createWebServer() {
 										if ( parseInt(path[4])>=0 && parseInt(path[4])<=100) {
 											if (path[5]) {
 												if (path[5]=='group') {
-													setGroupLevel( getDevice(path[2]), (parseInt(path[4])/100) );
-													result = {response:'ok'};
+													result = getDevice(path[2]).volumeGroup( (parseInt(path[4])/100) );
 												}
 											} else {
 												log('debug-server', 'path[4] targetLevel', (parseInt(path[4])/100) );
@@ -453,36 +459,29 @@ function createWebServer() {
 							
 						}
 					} else {
-						res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
 						getAssistantReady()
 						.then(ready => {
 							if (path[2]=="broadcast") {
 								if (path[3]) {
 									assistant.broadcast( decodeURI(path[3]) );
+									res.setHeader('Content-Type', 'application/json; charset=utf-8');
 									res.statusCode = 200;
-									res.end(JSON.stringify( { response:'ok' } ));
+									res.end( JSON.stringify( { response: 'ok' } ) );
 								}
 							}
 							if (path[2]=="command") {
 								if (path[3]) {
-									assistant.command( decodeURI(path[3]) )
-									.then(response => {
-										res.statusCode = 200;
-										res.end(JSON.stringify( { response: response } ));
-									})
-									.then(error => {
-										res.statusCode = 500;
-										res.end( JSON.stringify( { response: 'error', error: error } ) );
-									})
-									
+									assistant.command( decodeURI(path[3]) );
+									res.setHeader('Content-Type', 'application/json; charset=utf-8');
+									res.statusCode = 200;
+									res.end( JSON.stringify( { response: 'ok' } ) );
 								}
 							}
 						})
 						.catch(errorMessage => {
 							res.statusCode = 500;
 							res.end( JSON.stringify( { response: 'error', error: errorMessage } ) );
-						})
+						});
 					}
 				} else {
 					if (assistant) {

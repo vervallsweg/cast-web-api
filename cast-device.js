@@ -19,6 +19,8 @@ class CastDevice {
 		this.reconnectInterval;
 		this.castConnectionReceiver;
 		this.castConnectionMedia;
+		this.groups = [];
+		this.members = [];
 		this.status = {
 			volume: 0,
 			muted: false,
@@ -33,7 +35,7 @@ class CastDevice {
 
 		this.event.on('linkChanged', function() {
 			//reconnectionManagementInit
-			that.reconnectionManagement();
+			//that.reconnectionManagement();
 
 			//send callbacks
 			if (that.callback) {
@@ -45,7 +47,7 @@ class CastDevice {
 			if (that.link == 'connected' || that.link == 'connecting') {
 				if (that.groups) {
 					that.groups.forEach(function(group) {
-						if (group.link != 'connected' || group.link != 'connecting') {
+						if (group.link != 'connected' && group.link != 'connecting') {
 							group.link = 'connecting';
 							group.connect();
 						}
@@ -63,8 +65,33 @@ class CastDevice {
 			}
 
 			//sync group content
-			if (that.groups) {
-				//now in .setGroups()
+			if (that.members) {
+				if (that.castConnectionReceiver) {
+					if (that.castConnectionReceiver.sessionId) {
+						that.members.forEach(function(member) {
+							member.setStatus('groupPlayback', that.id);
+							member.setStatusArray( that.getStatusGroup() );
+						});
+					} else {
+						that.members.forEach(function(member) {		//TODO: DRY! Also check if group offline > reset?
+							if (member.status.groupPlayback == that.id) {
+								member.setStatus('groupPlayback', false);
+							}
+						});
+					}
+				} else {
+					that.members.forEach(function(member) {
+						if (member.status.groupPlayback == that.id) {
+							member.setStatus('groupPlayback', false);
+						}
+					});
+				}
+			} else {
+				that.members.forEach(function(member) {
+					if (member.status.groupPlayback == that.id) {
+						member.setStatus('groupPlayback', false);
+					}
+				});
 			}
 		});
 	}
@@ -331,7 +358,79 @@ class CastDevice {
 			address: this.address,
 			status: this.status,
 			groups: this.getGroups(),
-			members: this.members
+			members: this.getMembers()
+		}
+	}
+
+	setMember(member) {
+		var that = this;
+
+		if ( !this.getMembers().includes(member.id) ) {
+			this.members.push(member);
+			this.event.emit('statusChange'); //trigger group playback detection
+		}
+	}
+
+	getMembers() {
+		var ids = [];
+		if (this.members) {
+			this.members.forEach(function(member){
+				ids.push(member.id);
+			});
+		}
+		return ids;
+	}
+
+	removeMember(memberToRemove) {
+		if (this.members) {
+			this.members.forEach(function(member, index) {
+				if (member.id == memberToRemove) {
+					this.members.splice(index, 1); //TODO: better solution for parallel access
+					console.log(this.id+' ::: removed member: '+memberToRemove);
+				}
+			});
+		}
+	}
+
+	setGroup(group) {
+		var that = this;
+
+		//check if already added
+		if ( !this.getGroups().includes(group.id) ) {
+			
+			//checking for playback
+			//group.event.emit('statusChange');
+		
+			this.groups.push(group);
+			//connecting group members
+			this.event.emit('linkChanged');
+		}
+	}
+
+	getGroups() {
+		var ids = [];
+		if (this.groups) {
+			this.groups.forEach(function(group){
+				ids.push(group.id);
+			});
+		}
+		return ids;
+	}
+
+	removeGroup(groupToRemove) {
+		var that = this;
+		// if (this.status.groupPlayback == groupToRemove) {
+		// 	//groupToRemove offline > remvoing group playback for this member
+		// 	this.setStatus('groupPlayback', false);
+		// }
+
+		if (this.groups) {
+			this.groups.forEach(function(group, index) {
+				if (group.id == groupToRemove) {
+					this.groups.splice(index, 1); //TODO: better solution for parallel access
+					console.log(this.id+' ::: removed group: '+groupToRemove);
+				}
+			});
 		}
 	}
 
@@ -346,63 +445,6 @@ class CastDevice {
 		];
 	}
 
-	setGroups(group) {
-		var that = this;
-		group.event.on('statusChange', function() { //TODO: maybe mem leak?
-			if (group.castConnectionReceiver) {
-				if (group.castConnectionReceiver.sessionId) {
-					that.setStatus('groupPlayback', group.id);
-					that.setStatusArray( group.getStatusGroup() );
-				} else {
-					if (that.status.groupPlayback == group.id) {
-						that.setStatus('groupPlayback', false);
-					}
-				}
-			}
-		});
-
-		//checking for playback
-		group.event.emit('statusChange');
-
-		if (!this.groups) {
-			this.groups = [];
-		}
-		if (this.link == 'connected' || this.link == 'connecting') {
-			if (group.link != 'connected' || group.link != 'connecting') {
-				group.link = 'connecting';
-				group.connect();
-			}
-		}
-		this.groups.push(group);
-	}
-
-	getGroups() {
-		var ids = [];
-		if (this.groups) {
-			this.groups.forEach(function(group){
-				ids.push(group.id);
-			});
-		}
-		return ids;
-	}
-
-	removeGroups(groupToRemove) {
-		var that = this;
-		if (this.status.groupPlayback == groupToRemove) {
-			//groupToRemove offline > remvoing group playback for this member
-			this.setStatus('groupPlayback', false);
-		}
-
-		if (this.groups) {
-			this.groups.forEach(function(group, index) {
-				if (group.id == groupToRemove) {
-					this.groups.splice(index, 1); //TODO: better solution for parallel access
-					console.log(this.id+' ::: removed group: '+groupToRemove);
-				}
-			});
-		}
-	}
-
 	volume(targetLevel) {
 		log('info', 'CastDevice.volume()', targetLevel, this.id);
 		if (this.castConnectionReceiver.receiver && this.link == 'connected') {
@@ -410,6 +452,18 @@ class CastDevice {
 			return {response:'ok'};
 		} else {
 			return {response:'error', error:'disconnected'};
+		}
+	}
+
+	volumeGroup(targetLevel) {
+		log('info', 'CastDevice.volumeGroup()', targetLevel, this.id);
+		if (this.members) {
+			this.members.forEach(function(member) {
+				member.volume(targetLevel);
+			});
+			return {response:'ok'};
+		} else {
+			return {response:'error', error:'no members'};
 		}
 	}
 

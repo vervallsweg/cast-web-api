@@ -1,6 +1,7 @@
 var GoogleAssistant = null;
 const Events = require('events');
 const path = require('path');
+const util = require('util');
 const config = {
 	auth: {
 		keyFilePath: path.resolve(__dirname, './client_secret.json'),
@@ -10,7 +11,7 @@ const config = {
 		lang: 'en-US',
 	}
 };
-console.log('config: '+JSON.stringify(config));
+//console.log('config: '+JSON.stringify(config));
 try {
 	GoogleAssistant = require('google-assistant');	
 } catch (e) {
@@ -49,55 +50,80 @@ class Assistant extends Events {
 	}
 
 	startConversation(conversation){
-		// setup the conversation
-		var that = this; // << undefined 
-		conversation.on('response', text => {
-			console.log('Assistant Response:', text);
-			//that.emit('response', text); // << undefined 
-		});
+		
 			// if we've requested a volume level change, get the percentage of the new level
 		conversation.on('volume-percent', percent => console.log('New Volume Percent:', percent));
 			// the device needs to complete an action
 		conversation.on('device-action', action => console.log('Device Action:', action));
 			// once the conversation is ended, see if we need to follow up
-		conversation.on('ended', (error, continueConversation) => {
-			if (error) {
-				console.log('Conversation Ended Error:', error);
-			} else {
-				console.log('Conversation Complete');
-				conversation.end();
-			}
-		});
-		// catch any errors
-		conversation.on('error', (error) => {
-			console.log('Conversation Error:', error);
-		});
 	};
 
 	broadcast(message) {
-		if (this.ready) {
-			config.conversation.textQuery = 'Broadcast '+message;
-			this.assistant.start(config.conversation, this.startConversation);
-		} else {
-			this.emit('error', 'Assistant is not ready.');
-		}
+		var that = this;
+		return new Promise( function(resolve, reject) {
+			if (that.ready) {
+				config.conversation.textQuery = 'Broadcast '+message;
+				that.assistant.start(config.conversation);
+
+				that.assistant.on('started', conversation => {
+					conversation.on('response', text => {
+						//console.log('response: '+text);
+						resolve('Assistant response: ' + text);
+					});
+
+					conversation.on('ended', (error, continueConversation) => {
+						console.log('ended');
+						if (error) {
+							reject('Conversation ended, error: ' + error);
+						} else {
+							conversation.end();
+							resolve('Conversation complete, continueConversation: '+continueConversation);
+						}
+					});
+
+					conversation.on('error', (error) => {
+						//console.log('error:'+error);
+						reject('Conversation error: ' + error);
+					});
+				});
+			} else {
+				that.emit('error', 'Assistant is not ready.'); //y?
+				reject('Error: Assistant is not ready.');
+			}
+		});
 	};
 
 	command(command) {
 		var that = this;
 		return new Promise( function(resolve, reject) {
 			if (that.ready) {
-				config.conversation.textQuery = ''+command;
-				that.assistant.start(config.conversation, that.startConversation);
+				config.conversation.textQuery = command;
+				that.assistant.start(config.conversation);
 
-				that.on('response', response =>{
-					resolve(response);
-				});
-				that.on('error', response =>{
-					reject(error);
+				that.assistant.on('started', conversation => {
+					conversation.on('response', text => {
+						//console.log('response: '+text);
+						resolve('Assistant response: ' + text);
+					});
+
+					conversation.on('ended', (error, continueConversation) => {
+						console.log('ended');
+						if (error) {
+							reject('Conversation ended, error: ' + error);
+						} else {
+							conversation.end();
+							resolve('Conversation complete, continueConversation: '+continueConversation);
+						}
+					});
+
+					conversation.on('error', (error) => {
+						//console.log('error:'+error);
+						reject('Conversation error: ' + error);
+					});
 				});
 			} else {
-				that.emit('error', 'Assistant is not ready.');
+				that.emit('error', 'Assistant is not ready.'); //y?
+				reject('Error: Assistant is not ready.');
 			}
 		});
 	};
