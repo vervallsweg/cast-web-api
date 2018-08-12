@@ -348,7 +348,7 @@ class CastDevice {
 
 	setGroups(group) {
 		var that = this;
-		group.event.on('statusChange', function() {
+		group.event.on('statusChange', function() { //TODO: maybe mem leak?
 			if (group.castConnectionReceiver) {
 				if (group.castConnectionReceiver.sessionId) {
 					that.setStatus('groupPlayback', group.id);

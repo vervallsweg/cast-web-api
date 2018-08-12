@@ -10,6 +10,7 @@ const config = {
 		lang: 'en-US',
 	}
 };
+console.log('config: '+JSON.stringify(config));
 try {
 	GoogleAssistant = require('google-assistant');	
 } catch (e) {

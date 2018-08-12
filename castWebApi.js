@@ -721,7 +721,7 @@ function setClientSecret(clientSecret) {
 }
 
 function writeClientSecretJSON(object) {
-	var file = './assistant/client_secret.json'
+	var file = getAbsoulutePath()+'/client_secret.json';
 
 	jsonfile.writeFile(file, object, function (err) {
 		console.error(err)
@@ -730,7 +730,7 @@ function writeClientSecretJSON(object) {
 
 function readClientSecretJSON() {
 	return new Promise( function(resolve, reject) {
-		var file = './assistant/client_secret.json'
+		var file = getAbsoulutePath()+'/client_secret.json';
 
 		jsonfile.readFile(file, function(err, obj) {
 			if (obj) {
@@ -776,7 +776,7 @@ function setToken(oAuthCode) {
 }
 
 function writeToken(token) {
-	var file = './assistant/tokens.json'
+	var file = getAbsoulutePath()+'/tokens.json';
 	console.log('writeToken: '+JSON.stringify(token));
 
 	jsonfile.writeFile(file, token, function(err) {
@@ -812,6 +812,10 @@ function generateTokenUrl() {
 			reject(error);
 		})
 	});
+}
+
+function getAbsoulutePath(){
+	return (require.resolve('./assistant/google-assistant').substring(0, ( require.resolve('./assistant/google-assistant').length -20 ) ));
 }
 
 function buildMeta(functionName, message, id) {
