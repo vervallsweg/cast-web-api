@@ -35,7 +35,7 @@ class CastDevice {
 
 		this.event.on('linkChanged', function() {
 			//reconnectionManagementInit
-			//that.reconnectionManagement();
+			that.reconnectionManagement();
 
 			//send callbacks
 			if (that.callback) {
@@ -96,19 +96,22 @@ class CastDevice {
 		});
 	}
 
-	setAddress(newAddress, originalLink) {
+	setAddress(newAddress) {
 		if (this.link != 'disconnected') {
 			this.disconnect();
 			var that = this;
 			this.event.once('linkChanged', function(){
-				that.setAddress(newAddress, 'connected');
+				that.setAddress(newAddress);	//TODO: maybe more checks to prevent 2x .connect()
 			});
 		} else {
-			this.address = newAddress;
-			if (originalLink == 'connected') {
-				this.connect();
-			}
+			then.address = newAddress;
 		}
+		// else {
+		// 	this.address = newAddress;
+		// 	if (originalLink == 'connected') {
+		// 		this.connect();
+		// 	}
+		// }
 	}
 
 	connect() {
@@ -708,10 +711,11 @@ class CastDevice {
 
 		if (this.link=='disconnected') {
 			if (this.reconnectInterval==null) {
+				this.reconnectInterval = 'blocked';
 				log('debug', 'reconnectionManagement()', 'starting interval', this.id);
 				this.reconnectInterval = setInterval(function() {
 					log('debug', 'reconnectionManagement()', 'reconnect evaluating', that.id);
-					if (that.link!='connected') {
+					if (that.link!='connected' && that.link!='connecting') {
 						log('info', 'reconnectionManagement()', 'reconnecting', that.id);
 						that.connect();
 					}

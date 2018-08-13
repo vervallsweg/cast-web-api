@@ -40,8 +40,10 @@ function startApi() {
 
 	browser.on('deviceUp', device => {
 		console.log('deviceUp: '+JSON.stringify(device));
-		var newDevice = new CastDevice(device.id, device.address, device.name);
-		devices.push(newDevice);
+		if (!deviceExists(device.id)) {
+			var newDevice = new CastDevice(device.id, device.address, device.name);
+			devices.push(newDevice);
+		}
 	});
 
 	browser.on('deviceDown', device => {
@@ -49,7 +51,7 @@ function startApi() {
 		var targetDevice = getDevice(device.id);
 
 		if (targetDevice) {
-			targetDevice.disconnect();
+			//targetDevice.disconnect(); //Keep device connected since this is desired behaviour, recon man will deal with it
 		}
 	});
 
@@ -62,7 +64,7 @@ function startApi() {
 				targetDevice.name = change.value;
 			}
 			if (change.kind == 'address') {
-				targetDevice.setAddress(change.value);
+				targetDevice.setAddress(change.value);	//TODO: deviceChange address can first change port > 20sec later host: disconnect and reconnect in recon man timeout. Make sure to not double recon man
 			}
 		}
 	});
