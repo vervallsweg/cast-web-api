@@ -17,8 +17,6 @@ const setup = require('./assistant/setup');
 
 var hostname = '127.0.0.1';
 var port = 3000;
-var reconnectInterval = 300000; //TODO: params!
-var groupManagement = true;
 var windows = false;
 var thisVersion = pkg.version;
 
@@ -117,12 +115,6 @@ function interpretArguments() {
 	}
 	if (args.port) {
 		port = args.port;
-	}
-	if (args.reconnectInterval) {
-		reconnectInterval = args.reconnectInterval;
-	}
-	if (args.groupManagement) {
-		groupManagement = (args.groupManagement == 'true');
 	}
 	if (args.windows) {
 		windows = true;
@@ -333,44 +325,6 @@ function createWebServer() {
 				res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
 				if (path[2]) {
-					if (path[2]=="timeoutDiscovery") {
-						if (path[3]) {
-							if ( parseInt(path[3]) ) {
-								timeoutDiscovery = parseInt(path[3]);
-							}
-						}
-						res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery } ) );
-					}
-					if (path[2]=="reconnectInterval") {
-						if (path[3]) {
-							if ( parseInt(path[3]) ) {
-								reconnectInterval = parseInt(path[3]);
-							}
-						}
-						res.end( JSON.stringify( { reconnectInterval: reconnectInterval } ) );
-					}
-					if (path[2]=="discoveryInterval") {
-						if (path[3]) {
-							if ( parseInt(path[3]) ) {
-								discoveryInterval = parseInt(path[3]);
-							}
-						}
-						res.end( JSON.stringify( { discoveryInterval: discoveryInterval } ) );
-					}
-					if (path[2]=="discoveryRuns") {
-						if (path[3]) {
-							if ( parseInt(path[3]) ) {
-								discoveryRuns = parseInt(path[3]);
-							}
-						}
-						res.end( JSON.stringify( { discoveryRuns: discoveryRuns } ) );
-					}
-					if (path[2]=="groupManagement") {
-						if (path[3]) {
-							groupManagement = (path[3] == 'true');
-						}
-						res.end( JSON.stringify( { groupManagement: groupManagement } ) );
-					}
 					if (path[2]=="version") {
 						if (path[3]=="this") {
 							res.end( JSON.stringify( { version: thisVersion } ) );
@@ -396,7 +350,15 @@ function createWebServer() {
 						}
 					}
 				} else {
-					res.end( JSON.stringify( { timeoutDiscovery: timeoutDiscovery, reconnectInterval: reconnectInterval, discoveryInterval: discoveryInterval, groupManagement: groupManagement, discoveryRuns: discoveryRuns } ) );
+					getLatestVersion()
+					.then(version => {
+						res.end( JSON.stringify( { version: {this: thisVersion, latest: version} } ) );
+					})
+					.catch(errorMessage => {
+						res.statusCode = 500;
+						res.end( JSON.stringify( { response: error, error: errorMessage } ) );
+					})
+					
 				}
 			}
 
