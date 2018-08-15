@@ -104,7 +104,7 @@ class CastDevice {
 				that.setAddress(newAddress);	//TODO: maybe more checks to prevent 2x .connect()
 			});
 		} else {
-			then.address = newAddress;
+			this.address = newAddress;
 		}
 		// else {
 		// 	this.address = newAddress;
@@ -400,13 +400,12 @@ class CastDevice {
 
 		//check if already added
 		if ( !this.getGroups().includes(group.id) ) {
-			
-			//checking for playback
-			//group.event.emit('statusChange');
-		
+
 			this.groups.push(group);
 			//connecting group members
-			this.event.emit('linkChanged');
+			if (this.link=='connected' || this.link=='connecting') { //to not trigger recon man if device was never online
+				this.event.emit('linkChanged'); 
+			}
 		}
 	}
 
@@ -513,6 +512,20 @@ class CastDevice {
 		if (this.castConnectionReceiver.sessionId && this.link == 'connected') {
 			this.castConnectionReceiver.receiver.send({ type: 'STOP', sessionId: this.castConnectionReceiver.sessionId, requestId: this.getNewRequestId() });
 			return {response:'ok'};
+		} else {
+			return {response:'error', error:'nothing playing'};
+		}
+	}
+
+	seek(to) {
+		log('info', 'CastDevice.seek()', 'to: '+to, this.id);
+		if (this.castConnectionMedia && this.link == 'connected') {
+			if (this.castConnectionMedia.media && this.castConnectionReceiver.sessionId && this.castConnectionMedia.mediaSessionId) {
+				this.castConnectionMedia.media.send({ type: 'SEEK', currentTime: to, requestId: this.getNewRequestId(), mediaSessionId: this.castConnectionMedia.mediaSessionId, sessionId: this.castConnectionReceiver.sessionId });
+				return {response:'ok'};
+			} else {
+				return {response:'error', error:'nothing playing'};
+			}
 		} else {
 			return {response:'error', error:'nothing playing'};
 		}

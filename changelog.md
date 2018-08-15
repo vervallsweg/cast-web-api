@@ -1,4 +1,19 @@
 # Changelog
+## v1.1.0
+- Fixed: MDNS library, changed to own mdns-cast-browser #73
+- Added: ES6 class definitions #74
+- Added: GoogleTTS messages over 200 characters #70
+- Added: Google Assistant to broadcast messages
+- Added: API paths for Google Assistant auth
+- Added: Added /assistant/setup wizzard for auth
+- Added: seek function
+
+## v1.0.0
+- Updated: all API paths, see docs for more info
+- Added: GoogleTTS option for /playMedia
+- Added: auto reconnect to devices
+- Added: group recognition
+
 ## v0.3
 - fixed issue where certain devices don't show up #59
 - > all credit to @jg123

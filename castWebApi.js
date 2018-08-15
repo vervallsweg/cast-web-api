@@ -191,6 +191,13 @@ function createWebServer() {
 								if (path[3]=='stop') {
 									result = getDevice(path[2]).stop();
 								}
+								if (path[3]=='seek') {
+									if (path[4]) {
+										result = getDevice(path[2]).seek( path[4] );
+									} else {
+										result = {response:'error', error:'no seek to time provided'};
+									}
+								}
 								if (path[3]=='muted') {
 									if (path[4]) {
 										if (path[4]=='true') {
