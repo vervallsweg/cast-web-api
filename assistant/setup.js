@@ -21,6 +21,7 @@ function getSteps(number) {
 }
 
 //STEP 1
+var step1Disclaimer = '<div class="ui warning message"><div class="header">Disclaimer</div><p>This feature is experimental. It requires a dedicated setup and might not work as expected. The Google Assistant broadcast feature might not work all the time or on all of your devices. These issues are beyond my control!</p></div>';
 var step1Content = '<h2>1. Configure a Developer Project</h2><p>You will need a Client ID and Client secret. <strong>Make sure to select the "Other" application type when creating an oAuth Client ID.</strong></p><p><a href="https://developers.google.com/assistant/sdk/guides/service/python/embed/config-dev-project-and-account" target="blank" class="ui button">Follow this guide</a></p>';
 var step1Content = step1Content + '<h2>2. Paste your Client ID and Client secret</h2>';
 var step1Content = step1Content + '<div class="ui form"><div class="two fields"><div class="field"><label>Client ID</label><input type="text" id="client-id" placeholder="Client ID"></div><div class="field"><label>Client secret</label><input type="text" id="client-secret" placeholder="Client secret"></div></div></div>';
@@ -37,7 +38,7 @@ var step3Content = '<p>Paste the oAuth code you copied before, press save and wa
 var step3Content = step3Content + '<button style="float: right;" class="ui right labeled icon primary button" id="save-btn"><i class="save icon"></i><div>Save</div></button>';
 var step3JS = '<script>$("#save-btn").click(function(){$.ajax("/assistant/setup/token/"+$("#token")[0].value).always(function(){$("#save-btn").removeClass("right labeled icon").addClass("loading")}).done(function(e){$("#save-btn").removeClass("loading primary red").addClass("right labeled icon green"),$("#save-btn > div").text("Done"),$("#save-btn > i").removeClass("save times").addClass("check")}).fail(function(e){var a="No error message provided.";e&&e.responseJSON&&(a=e.responseJSON.error),$(".ui.ordered.fluid.steps").after('+errorPre+'+a+'+errorPost+'),$("#save-btn").removeClass("loading primary green").addClass("right labeled icon red"),$("#save-btn > div").text("Error"),$("#save-btn > i").removeClass("check save").addClass("times")})});</script>';
 
-var step1 = pre + getSteps(1) + step1Content + step1JS + post;
+var step1 = pre + step1Disclaimer + getSteps(1) + step1Content + step1JS + post;
 var step2 = pre + getSteps(2) + step2Content + step2JS + post;
 var step3 = pre + getSteps(3) + step3Content + step3JS + post;
 
