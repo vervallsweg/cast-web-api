@@ -455,6 +455,7 @@ function createWebServer() {
 						});
 					}
 				} else {
+					res.setHeader('Content-Type', 'application/json; charset=utf-8');
 					if (assistant) {
 						res.statusCode = 200;
 						res.end(JSON.stringify( { assistant:true, ready:assistant.ready } ));
