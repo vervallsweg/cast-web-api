@@ -1,5 +1,6 @@
 # Changelog
 ## v1.1.0
+- Attention: Requires node 7.0.0 or higher
 - Fixed: MDNS library, changed to own mdns-cast-browser #73
 - Added: ES6 class definitions #74
 - Added: GoogleTTS messages over 200 characters #70
