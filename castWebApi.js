@@ -695,7 +695,9 @@ function writeClientSecretJSON(object) {
 	var file = getAbsoulutePath()+'/client_secret.json';
 
 	jsonfile.writeFile(file, object, function (err) {
-		console.error(err)
+		if (err) {
+			console.log('writeClientSecretJSON error: '+err)
+		}
 	})
 }
 
