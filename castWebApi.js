@@ -386,7 +386,7 @@ function createWebServer() {
 						else if (path[3]=="token") {
 							res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
-							if (path[4]) {
+							if (path[4]!='auto') {
 								setToken(getRestOfPathArray(path, 4))
 								.then(response => {
 									res.statusCode = 200;
@@ -396,6 +396,21 @@ function createWebServer() {
 									res.statusCode = 500;
 									res.end( JSON.stringify( { response: 'error', error: error } ) );
 								})
+							} else {
+								if (parsedUrl.query.code) {
+									setToken(parsedUrl.query.code)
+									.then(response => {
+										res.statusCode = 200;
+										res.end( JSON.stringify( response ) );
+									})
+									.catch(error =>{
+										res.statusCode = 500;
+										res.end( JSON.stringify( { response: 'error', error: error } ) );
+									})
+								} else {
+									res.statusCode = 500;
+									res.end( JSON.stringify( { response: 'error', error: 'no token received' } ) );
+								}
 							}
 						}
 						else if (path[3]=="getTokenUrl") {
@@ -410,20 +425,35 @@ function createWebServer() {
 								res.statusCode = 500;
 								res.end( JSON.stringify( { response: 'error', error: error } ) );
 							})
+						}
+						else if (path[3]=="status") {
+							res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
+							checkSetup()
+							.then(setup => {
+								res.statusCode = 200;
+								res.end(JSON.stringify( { response: 'ok', setup:setup } ));
+							})
 						} else {
 							res.setHeader('Content-Type', 'text/html; charset=utf-8');
 							res.statusCode = 200;
 
-							if (path[3]==1) {
-								res.end( setup.step1 );
-							}
-							if (path[3]==2) {
-								res.end( setup.step2 );
-							}
-							if (path[3]==3) {
-								res.end( setup.step3 );
-							} else {
-								res.end( setup.step1 );
+							try {
+								var ga = require('google-assistant');
+								if (path[3]==1) {
+									res.end( setup.step1 );
+								}
+								if (path[3]==2) {
+									res.end( setup.step2 );
+								}
+								if (path[3]==3) {
+									res.end( setup.step3 );
+								} else {
+									res.end( setup.step1 );
+								}
+							} catch (e) {
+								console.log('GoogleAssistant require error: '+e);
+								res.end( 'GoogleAssistant not installed, error: '+e );
 							}
 							
 							//console.log('setup: '+JSON.stringify(setup) );
@@ -667,11 +697,47 @@ function getAssistantReady() {
 	});
 }
 
+function checkSetup() {
+	return new Promise(function(resolve, reject) {
+		var setup = {id: false, secret: false, token: false};
+		readClientSecretJSON()
+		.then(existing =>{
+			if (existing.installed) {
+				if (existing.installed.client_secret){
+					setup.secret = true;
+				}
+				if (existing.installed.client_id){
+					setup.id = true;
+				}
+			}
+
+			var file = getAbsoulutePath()+'/tokens.json';
+			jsonfile.readFile(file, function(err, obj) {
+				if (obj) {
+					if (obj.access_token) {
+						setup.token = true;
+					}
+					resolve(setup);
+				}
+				if (err) {
+					console.log('read tokens.json, error: '+err);
+					resolve(setup);
+				}
+			});
+		})
+		.catch(error =>{
+			console.log('setClientSecret error: '+error);
+			resolve(setup);
+		})
+	});
+}
+
 function setClientID(clientID) {
 	readClientSecretJSON()
 	.then(existing =>{
 		existing.installed.client_id = clientID;
 		existing.installed.redirect_uris = ["urn:ietf:wg:oauth:2.0:oob"];
+		// existing.installed.redirect_uris = ["http://127.0.0.1:3000/assistant/setup/token/auto/"];
 		writeClientSecretJSON(existing);
 	})
 	.catch(error =>{
@@ -684,6 +750,7 @@ function setClientSecret(clientSecret) {
 	.then(existing =>{
 		existing.installed.client_secret = clientSecret;
 		existing.installed.redirect_uris = ["urn:ietf:wg:oauth:2.0:oob"];
+		// existing.installed.redirect_uris = ["http://127.0.0.1:3000/assistant/setup/token/auto/"];
 		writeClientSecretJSON(existing);
 	})
 	.catch(error =>{
