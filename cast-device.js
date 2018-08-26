@@ -97,21 +97,15 @@ class CastDevice {
 	}
 
 	setAddress(newAddress) {
+		log('info', 'CastDevice.setAddress()', 'newAddress: ' + JSON.stringify(newAddress), this.id );
 		if (this.link != 'disconnected') {
 			this.disconnect();
 			var that = this;
-			this.event.once('linkChanged', function(){
-				that.setAddress(newAddress);	//TODO: maybe more checks to prevent 2x .connect()
-			});
-		} else {
-			this.address = newAddress;
+			// this.event.once('linkChanged', function(){
+			// 	that.setAddress(newAddress);	//TODO: maybe more checks to prevent 2x .connect() //maybe this is the weird bug causing outdated IPs
+			// });
 		}
-		// else {
-		// 	this.address = newAddress;
-		// 	if (originalLink == 'connected') {
-		// 		this.connect();
-		// 	}
-		// }
+		this.address = newAddress;
 	}
 
 	connect() {

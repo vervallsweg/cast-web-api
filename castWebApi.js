@@ -38,7 +38,7 @@ function startApi() {
 
 	browser.on('deviceUp', device => {
 		console.log('deviceUp: '+JSON.stringify(device));
-		if (!deviceExists(device.id)) {
+		if (!deviceExists(device.id)) {	//TODO: issue if device down -> device up with new address
 			var newDevice = new CastDevice(device.id, device.address, device.name);
 			devices.push(newDevice);
 		}
