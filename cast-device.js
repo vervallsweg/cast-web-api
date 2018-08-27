@@ -618,6 +618,9 @@ class CastDevice {
 								messages[messagesIndex] = chunk.substring(0, 200);
 								chunk = chunk.substring(200);
 							}
+							if (!messages[messagesIndex]) {
+								messages[messagesIndex] = '';
+							}
 							if (messages[messagesIndex].length+1+chunk.length <= 200) {
 								messages[messagesIndex] = messages[messagesIndex]+' '+chunk;
 								added = true;
@@ -650,13 +653,12 @@ class CastDevice {
 						messageParts.forEach(function(part, partIndex) {
 							var newMediaElement = JSON.parse(JSON.stringify(mediaElement));
 							newMediaElement.media.metadata.title = part;
-							console.log('partIndex: '+partIndex+', part: '+ part + ', mediaList: '+JSON.stringify(mediaList));
+							log('debug', 'splitGoogleTTS()', 'partIndex: '+partIndex+', part: '+ part + ', mediaList: '+JSON.stringify(mediaList));
 							if (partIndex == 0) {
 								mediaList.splice(index, 1, newMediaElement);
 							} else {
-								mediaList.splice(index+1, 0, newMediaElement);
+								mediaList.splice(index+partIndex, 0, newMediaElement);
 							}
-							
 						});
 					}
 				}
@@ -683,7 +685,7 @@ class CastDevice {
 						}
 					})
 					.catch(function (err) {
-						log('error', 'replaceGoogleTts()', 'googleTTS error: '+err);
+						log('error', 'splitGoogleTTS()', 'googleTTS error: '+err);
 						mediaList.splice(index, 1);
 						googleTTSPromised--;
 						if (googleTTSResolved == googleTTSPromised) {
