@@ -1,4 +1,7 @@
 # cast-web-api
+[![npm version](https://badge.fury.io/js/cast-web-api.svg)](https://badge.fury.io/js/cast-web-api)
+[![Dependency Status](https://img.shields.io/david/vervallsweg/cast-web-api.svg)](https://david-dm.org/vervallsweg/cast-web-api)
+[![npm](https://img.shields.io/npm/dm/cast-web-api.svg?maxAge=2592000)]()
 Web API for Google Cast enabled devices, based on the [node-castv2](https://github.com/thibauts/node-castv2 "node-castv2") implementation by thibauts.
 
 This API is only intendend to be used on your local network **not for hosting on the public internet**.
