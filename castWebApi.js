@@ -14,9 +14,10 @@ const Assistant = require('./assistant/google-assistant');
 const jsonfile = require('jsonfile');
 const OAuth2 = new (require('google-auth-library'))().OAuth2;
 const setup = require('./assistant/setup');
+const express = require('express');
 
-var hostname = '127.0.0.1';
-var port = 3000;
+//var hostname = '127.0.0.1';
+const port = 3000;
 var windows = false;
 var thisVersion = pkg.version;
 
@@ -139,391 +140,387 @@ function getNetworkIp() {
 
 //WEBSERVER
 function createWebServer() {
-	const server = http.createServer((req, res) => {
-		var parsedUrl = url.parse(req.url, true);
-		var path = parsedUrl['pathname'].split('/');
-		var requestBuffer = '';
-		var requestData = null;
+	const webserver = express();
 
-		req.on('data', function (data) {
-            requestBuffer += data;
-        });
+	webserver.get('/', function (req, res) {
+		//res.setHeader('Content-Type', 'application/json; charset=utf-8');
+		// res.statusCode = 200;
+		res.send('{ "cast-web-api" : "v' + thisVersion + '" }')
+	});
 
-		req.on('end', function () {
-			requestData = requestBuffer;
-			log('debug-server', 'requestData', requestData);
+	webserver.get('/device', function (req, res) {
+		res.send( getDevices('all') );
+	});
 
-			if (path[1]=="device") {
-				res.setHeader('Content-Type', 'application/json; charset=utf-8');
+	webserver.get('/device/connected', function (req, res) {
+		res.send( getDevices('connected') );
+	});
 
-				if (path[2]) {
-					if (path[2] == 'discover') {
-						discoverZones();
-						res.end( JSON.stringify( {response: 'ok'} ) );
-					}
-					if (path[2] == 'connected') {
-						res.statusCode = 200;
-						res.end( JSON.stringify( getDevices('connected') ) );
-					}
-					if (path[2] == 'disconnected') {
-						res.statusCode = 200;
-						res.end( JSON.stringify( getDevices('disconnected') ) );
-					} else {
-						getDeviceConnected(path[2])
-						.then(device => {
-							if (path[3]) {
-								log('debug-server', 'path[3]', path[3]);
-								var result = {response:'error', error:'command unknown'};
-								if (path[3]=='play') {
-									result = getDevice(path[2]).play();
-								}
-								if (path[3]=='pause') {
-									result = getDevice(path[2]).pause();
-								}
-								if (path[3]=='stop') {
-									result = getDevice(path[2]).stop();
-								}
-								if (path[3]=='seek') {
-									if (path[4]) {
-										result = getDevice(path[2]).seek( path[4] );
-									} else {
-										result = {response:'error', error:'no seek to time provided'};
-									}
-								}
-								if (path[3]=='muted') {
-									if (path[4]) {
-										if (path[4]=='true') {
-											result = getDevice(path[2]).muted(true);
-										}
-										if (path[4]=='false') {
-											result = getDevice(path[2]).muted(false);
-										}
-									} else {
-										result = {response:'error', error:'true/false unknown'};
-									}
-								}
-								if (path[3]=='volume') {
-									if (path[4]) {
-										if ( parseInt(path[4])>=0 && parseInt(path[4])<=100) {
-											if (path[5]) {
-												if (path[5]=='group') {
-													result = getDevice(path[2]).volumeGroup( (parseInt(path[4])/100) );
-												}
-											} else {
-												log('debug-server', 'path[4] targetLevel', (parseInt(path[4])/100) );
-												result = getDevice(path[2]).volume( (parseInt(path[4])/100) );
-											}
-										} else {
-											result = {response:'error', error:'level unknown'};
-										}
-									} else {
-										result = {response:'error', error:'level unknown'};
-									}
-								}
-								if (path[3]=='image') {
-									if ( getDevice(path[2]).status.image == '' ) {
-										var imgUrl = 'http://lh3.googleusercontent.com/LB5CRdhftEGo2emsHOyHz6NWSfLVD5NC45y6auOqYoyrv7BC5mdDm66vPDCEAJjcDA=w360';
-									} else {
-										var imgUrl = getDevice(path[2]).status.image;
-									}
-									var query = url.parse(imgUrl);
+	webserver.get('/device/disconnected', function (req, res) {
+		res.send( getDevices('disconnected') );
+	});
 
-									var options = {
-										hostname: query.hostname,
-										path: query.path
-									};
-
-									log('info', '/image/', 'options: '+ JSON.stringify(options) );
-									
-									result = {response: 'wait'};
-
-									var callback = function(response) {
-										if (response.statusCode === 200) {
-											res.setHeader('Content-Type', response.headers['content-type']);
-											res.statusCode = 200;
-											response.pipe(res);
-										} else {
-											res.statusCode = 500;
-											res.end( JSON.stringify( {response:'error', error:'cannot proxy image'} ) );
-										}
-									};
-									http.request(options, callback).end();
-								}
-								if (path[3]=='subscribe') {
-									if (path[4]) {
-										result = { response:'ok' };
-										result = getDevice(path[2]).createSubscription( getRestOfPathArray(path, 4) );
-									} else {
-										result = {response:'error', error:'callback unknown'};
-									}
-								}
-								if (path[3]=='unsubscribe') {
-									result = getDevice(path[2]).removeSubscription();
-								}
-								if (path[3]=='playMedia') {
-									log('info', 'playMedia()', 'requestData: '+ requestData );
-									if (requestData) {
-										try {
-											var media = JSON.parse(requestData);
-											result = getDevice(path[2]).playMedia(media);
-											//result = getDevice(path[2]).playMedia();
-										} catch (e) {
-											result = {response:'error', error: e};
-										}
-									} else {
-										result = {response:'error', error: 'post media unknown'};
-									}
-								}
-								if (path[3]=='playMediaGet') {
-									log('info', 'playMediaGet()', 'path: '+ path );
-									if ( getRestOfPathArray(path, 4) ) {
-										log('info', 'playMediaGet()', 'getRestOfPathArray: '+ decodeURI(getRestOfPathArray(path, 4)) );
-
-										try {
-											var media = JSON.parse( decodeURI(getRestOfPathArray(path, 4)) );
-											result = getDevice(path[2]).playMedia(media);
-										} catch (e) {
-											result = {response:'error', error: e};
-										}
-									} else {
-										result = {response:'error', error: 'post media unknown'};
-									}
-								}
-								if (path[3]=='disconnect') {
-									getDevice(path[2]).disconnect();
-									result = { response:'ok' };
-								}
-								if (path[3]=='remove') {
-									removeDevice(path[2]);
-									result = { response:'ok' };
-								}
-								if (result.response != 'wait' ) {
-									if (result.response == 'ok') {
-										res.statusCode = 200;
-									} else {
-										res.statusCode = 500;
-									}
-									res.end( JSON.stringify( result ) );
-								}
-							} else {
-								res.statusCode = 200;
-								res.end( JSON.stringify( device.toString() ) );
-							}
-						})
-						.catch(errorMessage => {
-							res.statusCode = 404;
-							res.end( JSON.stringify( {response: 'error', error: errorMessage} ) );
-						})
-					}
-				} else {
-					res.statusCode = 200;
-					res.end( JSON.stringify( getDevices('all') ) );
-				}
-			}
-
-			if (path[1]=="config") {
-				res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-				if (path[2]) {
-					if (path[2]=="version") {
-						if (path[3]=="this") {
-							res.end( JSON.stringify( { version: thisVersion } ) );
-						}
-						if (path[3]=="latest") {
-							getLatestVersion()
-							.then(version => {
-								res.end( JSON.stringify( { version: version } ) );
-							})
-							.catch(errorMessage => {
-								res.statusCode = 500;
-								res.end( JSON.stringify( { response: error, error: errorMessage } ) );
-							})
-						} else {
-							getLatestVersion()
-							.then(version => {
-								res.end( JSON.stringify( { this: thisVersion, latest: version } ) );
-							})
-							.catch(errorMessage => {
-								res.statusCode = 500;
-								res.end( JSON.stringify( { response: error, error: errorMessage } ) );
-							})
-						}
-					}
-				} else {
-					getLatestVersion()
-					.then(version => {
-						res.end( JSON.stringify( { version: {this: thisVersion, latest: version} } ) );
-					})
-					.catch(errorMessage => {
-						res.statusCode = 500;
-						res.end( JSON.stringify( { response: error, error: errorMessage } ) );
-					})
-					
-				}
-			}
-
-			if (path[1]=="assistant") {
-				if (path[2]) {
-					if (path[2]=="setup") {
-						if (path[3]=="id") {
-							res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-							if (path[4]) {
-								setClientID(path[4]);
-								res.statusCode = 200;
-								res.end( JSON.stringify( {response:'ok'} ) );
-							}
-						}
-						else if (path[3]=="secret") {
-							res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-							if (path[4]) {
-								setClientSecret(path[4]);
-								res.statusCode = 200;
-								res.end( JSON.stringify( {response:'ok'} ) );
-							}
-						}
-						else if (path[3]=="token") {
-							res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-							if (path[4]!='auto') {
-								setToken(getRestOfPathArray(path, 4))
-								.then(response => {
-									res.statusCode = 200;
-									res.end( JSON.stringify( response ) );
-								})
-								.catch(error =>{
-									res.statusCode = 500;
-									res.end( JSON.stringify( { response: 'error', error: error } ) );
-								})
-							} else {
-								if (parsedUrl.query.code) {
-									setToken(parsedUrl.query.code)
-									.then(response => {
-										res.statusCode = 200;
-										res.end( JSON.stringify( response ) );
-									})
-									.catch(error =>{
-										res.statusCode = 500;
-										res.end( JSON.stringify( { response: 'error', error: error } ) );
-									})
-								} else {
-									res.statusCode = 500;
-									res.end( JSON.stringify( { response: 'error', error: 'no token received' } ) );
-								}
-							}
-						}
-						else if (path[3]=="getTokenUrl") {
-							res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-							generateTokenUrl()
-							.then(url => {
-								res.statusCode = 200;
-								res.end(JSON.stringify( { response: 'ok', url:url } ));
-							})
-							.catch(error =>{
-								res.statusCode = 500;
-								res.end( JSON.stringify( { response: 'error', error: error } ) );
-							})
-						}
-						else if (path[3]=="status") {
-							res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-							checkSetup()
-							.then(setup => {
-								res.statusCode = 200;
-								res.end(JSON.stringify( { response: 'ok', setup:setup } ));
-							})
-						} else {
-							res.setHeader('Content-Type', 'text/html; charset=utf-8');
-							res.statusCode = 200;
-
-							try {
-								var ga = require('google-assistant');
-								if (path[3]==1) {
-									res.end( setup.step1 );
-								}
-								if (path[3]==2) {
-									res.end( setup.step2 );
-								}
-								if (path[3]==3) {
-									res.end( setup.step3 );
-								} else {
-									res.end( setup.step1 );
-								}
-							} catch (e) {
-								console.log('GoogleAssistant require error: '+e);
-								res.end( 'GoogleAssistant not installed, error: '+e );
-							}
-							
-							//console.log('setup: '+JSON.stringify(setup) );
-							
-						}
-					} else {
-						getAssistantReady()
-						.then(ready => {
-							if (path[2]=="broadcast") {
-								if (path[3]) {
-									assistant.broadcast( decodeURI(path[3]) );
-									res.setHeader('Content-Type', 'application/json; charset=utf-8');
-									res.statusCode = 200;
-									res.end( JSON.stringify( { response: 'ok' } ) );
-								}
-							}
-							if (path[2]=="command") {
-								if (path[3]) {
-									assistant.command( decodeURI(path[3]) );
-									res.setHeader('Content-Type', 'application/json; charset=utf-8');
-									res.statusCode = 200;
-									res.end( JSON.stringify( { response: 'ok' } ) );
-								}
-							}
-						})
-						.catch(errorMessage => {
-							res.statusCode = 500;
-							res.end( JSON.stringify( { response: 'error', error: errorMessage } ) );
-						});
-					}
-				} else {
-					res.setHeader('Content-Type', 'application/json; charset=utf-8');
-					if (assistant) {
-						res.statusCode = 200;
-						res.end(JSON.stringify( { assistant:true, ready:assistant.ready } ));
-					} else {
-						res.statusCode = 200;
-						res.end(JSON.stringify( { assistant:false, ready:false } ));
-					}
-				}
-			}
-
-			if (path[1]=="memdump") {
-				res.setHeader('Content-Type', 'application/json; charset=utf-8');
-				res.statusCode = 200;
-				log( 'server', 'memory dump', util.inspect(devices) );
-				res.end('ok');
-			}
-
-			if (path[1]=="") {
-				res.setHeader('Content-Type', 'application/json; charset=utf-8');
-				res.statusCode = 200;
-				res.end('{ "cast-web-api" : "v' + thisVersion + '" }')
-			}
+	webserver.get('/device/:id*', function (req, res, next) {
+		console.log('/device/:id*, req.params.id: '+req.params.id);
+		getDeviceConnected(req.params.id)
+		.then(device => {
+			res.locals.device = device;
+			next();
+		})
+		.catch(error => {
+			res.status(404).json({ response: 'error', error: error });
 		});
 	});
 
-	server.listen(port, hostname, () => {
-	 	console.log('cast-web-api running at http://'+hostname+':'+port+'/');
-	});
-
-	server.on('request', (req, res) => {
-		if (req.url!='/favicon.ico') {
-			log('server', 'on("request")', req.url);
+	webserver.get('/device/:id*', function (req, res, next) {
+		console.log('/device/:id* 2, req.params: '+JSON.stringify(req.params));
+		if (req.params[0]=="") {
+			res.json( res.locals.device.toString() );
+		} else {
+			next();
 		}
 	});
 
-	server.on('clientError', (err, socket) => {
-		socket.end('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+	webserver.get('/device/:id/play', function (req, res) {
+		console.log('play');
+		evalResults( res, res.locals.device.play() );
 	});
+
+	webserver.get('/device/:id/pause', function (req, res) {
+		console.log('pause');
+		evalResults( res, res.locals.device.pause() );
+	});
+
+	webserver.get('/device/:id/stop', function (req, res) {
+		console.log('stop');
+		evalResults( res, res.locals.device.stop() );
+	});
+
+	webserver.get('/device/:id/seek/:time', function (req, res) {
+		console.log('seek');
+		evalResults( res, res.locals.device.seek(req.params.time) );
+	});
+
+	webserver.get('/device/:id/muted/:target', function (req, res) {
+		console.log('muted');
+		evalResults( res, res.locals.device.muted(req.params.target == 'true') );
+	});
+
+	webserver.get('/device/:id/volume/:target', function (req, res) {
+		console.log('volume');
+		evalResults( res, res.locals.device.volume(req.params.target/100) );
+	});
+
+	webserver.get('/device/:id/image', function (req, res) {
+		console.log('image');
+	});
+
+	webserver.get('/device/:id/subscribe', function (req, res) {
+		console.log('subscribe');
+	});
+
+	webserver.get('/device/:id/unsubscribe', function (req, res) {
+		console.log('unsubscribe');
+	});
+
+	webserver.get('/device/:id/disconnect', function (req, res) {
+		console.log('disconnect');
+		res.locals.device.disconnect();
+		res.json({ response:'ok' });
+	});
+
+	webserver.get('/device/:id/remove', function (req, res) {
+		console.log('remove');
+		removeDevice( req.params.id );
+		res.json({ response:'ok' });
+	});
+
+	webserver.get('/config?/config/version', function (req, res) {
+		console.log('config');
+		
+		getLatestVersion()
+		.then(version => {
+			res.json( { version: {this: thisVersion, latest: version} } );
+		})
+		.catch(error => {
+			res.status(500).json( { response: error, error: error } );
+		})
+	});
+
+	webserver.get('/config/version/this', function (req, res) {
+		console.log('/config/version/this');
+		res.json( { version: thisVersion } );
+	});
+
+	webserver.get('/config/version/lastest', function (req, res) {
+		console.log('/config/version/lastest');
+		
+		getLatestVersion()
+		.then(version => {
+			res.json( { version: version } );
+		})
+		.catch(error => {
+			res.status(500).json( { response: error, error: error } );
+		})
+	});
+
+	webserver.get('/assistant', function (req, res) {
+		console.log('/assistant');
+		if (assistant) {
+			res.json( { assistant:true, ready:assistant.ready } );
+		} else {
+			res.json( { assistant:true, ready:assistant.ready } );
+		}
+	});
+
+	webserver.get('/assistant/broadcast/:message?/assistant/command:query', function (req, res, next) {
+		console.log('/assistant/broadcast?/assistant/command');
+		getAssistantReady()
+		.then(ready => {
+			next();
+		})
+		.catch(error => {
+			res.statusCode = 500;
+			res.status(500).json( { response: 'error', error: error } );
+		});
+	});
+
+	webserver.get('/assistant/broadcast/:message', function (req, res) {
+		console.log('/assistant/broadcast/:message');
+		
+		assistant.broadcast( req.params.message );
+		res.json( { response: 'ok' } );
+	});
+
+	webserver.get('/assistant/command/:query', function (req, res) {
+		console.log('/assistant/command/:query');
+		
+		assistant.command( req.params.query );
+		res.json( { response: 'ok' } );
+	});
+
+	webserver.get('/assistant/setup/id/:clientId', function (req, res) {
+		console.log('/assistant/setup');
+		
+		setClientID( req.params.clientId );
+		res.json( {response:'ok'} );
+	});
+
+	webserver.get('/assistant/setup/secret/:clientSecret', function (req, res) {
+		console.log('/assistant/setup');
+		
+		setClientSecret( req.params.clientSecret );
+		res.json( {response:'ok'} );
+	});
+
+	webserver.get('/assistant/setup/token/:oAuthCode?/assistant/setup/token/auto/:oAuthCode', function (req, res) {
+		console.log('/assistant/setup/token/:oAuthCode?/assistant/setup/token/auto/:oAuthCode');
+		
+		setToken(req.params.oAuthCode)
+		.then(response => {
+			res.json( response );
+		})
+		.catch(error =>{
+			res.status(500).json( { response: 'error', error: error } );
+		})
+	});
+
+	webserver.get('/assistant/setup/getTokenUrl', function (req, res) {
+		console.log('/assistant/setup/getTokenUrl');
+		
+		generateTokenUrl()
+		.then(url => {
+			res.json( { response: 'ok', url: url } );
+		})
+		.catch(error =>{
+			res.status(500).json( { response: 'error', error: error } );
+		})
+	});
+
+	webserver.get('/memdump', function (req, res) {
+		log( 'server', 'memory dump', util.inspect(devices) );
+		res.send('ok');
+	});
+
+	webserver.listen(port, () => {
+		console.log('cast-web-api running at http://'+hostname+':'+port+'/');
+	});
+
+	function evalResults(res, result) {
+		if (result.error) {
+			res.status(500).json(result);
+		} else {
+			res.json(result);
+		}
+	}
+
+	//	const server = http.createServer((req, res) => {
+	// 	var parsedUrl = url.parse(req.url, true);
+	// 	var path = parsedUrl['pathname'].split('/');
+	// 	var requestBuffer = '';
+	// 	var requestData = null;
+
+	// 	req.on('data', function (data) {
+ 	//  	requestBuffer += data;
+ 	//	});
+
+	// 	req.on('end', function () {
+	// 		requestData = requestBuffer;
+	// 		log('debug-server', 'requestData', requestData);
+
+	// 		if (path[1]=="device") {
+	// 			res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
+	// 			if (path[2]) {
+	// 				if (path[2] == 'connected') {
+	// 					res.statusCode = 200;
+	// 					res.end( JSON.stringify( getDevices('connected') ) );
+	// 				}
+	// 				if (path[2] == 'disconnected') {
+	// 					res.statusCode = 200;
+	// 					res.end( JSON.stringify( getDevices('disconnected') ) );
+	// 				} else {
+	// 					getDeviceConnected(path[2])
+	// 					.then(device => {
+	// 						if (path[3]) {
+	// 							log('debug-server', 'path[3]', path[3]);
+	// 							var result = {response:'error', error:'command unknown'};
+	// 							
+	// 							
+	// 							if (path[3]=='image') {
+	// 								if ( getDevice(path[2]).status.image == '' ) {
+	// 									var imgUrl = 'http://lh3.googleusercontent.com/LB5CRdhftEGo2emsHOyHz6NWSfLVD5NC45y6auOqYoyrv7BC5mdDm66vPDCEAJjcDA=w360';
+	// 								} else {
+	// 									var imgUrl = getDevice(path[2]).status.image;
+	// 								}
+	// 								var query = url.parse(imgUrl);
+
+	// 								var options = {
+	// 									hostname: query.hostname,
+	// 									path: query.path
+	// 								};
+
+	// 								log('info', '/image/', 'options: '+ JSON.stringify(options) );
+									
+	// 								result = {response: 'wait'};
+
+	// 								var callback = function(response) {
+	// 									if (response.statusCode === 200) {
+	// 										res.setHeader('Content-Type', response.headers['content-type']);
+	// 										res.statusCode = 200;
+	// 										response.pipe(res);
+	// 									} else {
+	// 										res.statusCode = 500;
+	// 										res.end( JSON.stringify( {response:'error', error:'cannot proxy image'} ) );
+	// 									}
+	// 								};
+	// 								http.request(options, callback).end();
+	// 							}
+	// 							if (path[3]=='subscribe') {
+	// 								if (path[4]) {
+	// 									result = { response:'ok' };
+	// 									result = getDevice(path[2]).createSubscription( getRestOfPathArray(path, 4) );
+	// 								} else {
+	// 									result = {response:'error', error:'callback unknown'};
+	// 								}
+	// 							}
+	// 							if (path[3]=='unsubscribe') {
+	// 								result = getDevice(path[2]).removeSubscription();
+	// 							}
+	// 							if (path[3]=='playMedia') {
+	// 								log('info', 'playMedia()', 'requestData: '+ requestData );
+	// 								if (requestData) {
+	// 									try {
+	// 										var media = JSON.parse(requestData);
+	// 										result = getDevice(path[2]).playMedia(media);
+	// 										//result = getDevice(path[2]).playMedia();
+	// 									} catch (e) {
+	// 										result = {response:'error', error: e};
+	// 									}
+	// 								} else {
+	// 									result = {response:'error', error: 'post media unknown'};
+	// 								}
+	// 							}
+	// 							if (path[3]=='playMediaGet') {
+	// 								log('info', 'playMediaGet()', 'path: '+ path );
+	// 								if ( getRestOfPathArray(path, 4) ) {
+	// 									log('info', 'playMediaGet()', 'getRestOfPathArray: '+ decodeURI(getRestOfPathArray(path, 4)) );
+
+	// 									try {
+	// 										var media = JSON.parse( decodeURI(getRestOfPathArray(path, 4)) );
+	// 										result = getDevice(path[2]).playMedia(media);
+	// 									} catch (e) {
+	// 										result = {response:'error', error: e};
+	// 									}
+	// 								} else {
+	// 									result = {response:'error', error: 'post media unknown'};
+	// 								}
+	// 							}
+	// 		}
+
+	// 		if (path[1]=="assistant") {
+	// 			if (path[2]) {
+	// 				if (path[2]=="setup") {
+	// 					
+	// 					if (path[3]=="status") {
+	// 						res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
+	// 						checkSetup()
+	// 						.then(setup => {
+	// 							res.statusCode = 200;
+	// 							res.end(JSON.stringify( { response: 'ok', setup:setup } ));
+	// 						})
+	// 					} else {
+	// 						res.setHeader('Content-Type', 'text/html; charset=utf-8');
+	// 						res.statusCode = 200;
+
+	// 						try {
+	// 							var ga = require('google-assistant');
+	// 							if (path[3]==1) {
+	// 								res.end( setup.step1 );
+	// 							}
+	// 							if (path[3]==2) {
+	// 								res.end( setup.step2 );
+	// 							}
+	// 							if (path[3]==3) {
+	// 								res.end( setup.step3 );
+	// 							} else {
+	// 								res.end( setup.step1 );
+	// 							}
+	// 						} catch (e) {
+	// 							console.log('GoogleAssistant require error: '+e);
+	// 							res.end( 'GoogleAssistant not installed, error: '+e );
+	// 						}
+							
+	// 						//console.log('setup: '+JSON.stringify(setup) );
+							
+	// 					}
+	// 				} else {
+	// 					
+	// 				}
+	// 		}
+
+	// 		if (path[1]=="") {
+	// 			res.setHeader('Content-Type', 'application/json; charset=utf-8');
+	// 			res.statusCode = 200;
+	// 			res.end('{ "cast-web-api" : "v' + thisVersion + '" }')
+	// 		}
+	// 	});
+	// });
+
+	// server.listen(port, hostname, () => {
+	//  	console.log('cast-web-api running at http://'+hostname+':'+port+'/');
+	// });
+
+	// server.on('request', (req, res) => {
+	// 	if (req.url!='/favicon.ico') {
+	// 		log('server', 'on("request")', req.url);
+	// 	}
+	// });
+
+	// server.on('clientError', (err, socket) => {
+	// 	socket.end('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+	// });
 }
 
 function deviceExists(id) {
