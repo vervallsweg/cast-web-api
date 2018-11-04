@@ -102,6 +102,7 @@ function getNetworkIp() {
 //WEBSERVER
 function createWebServer() {
 	const server = http.createServer((req, res) => {
+		res.setHeader('Access-Control-Allow-Origin', '*')
 		var parsedUrl = url.parse(req.url, true);
 		var path = parsedUrl['pathname'].split('/');
 		var requestBuffer = '';
