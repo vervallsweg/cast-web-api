@@ -28,6 +28,9 @@
 		"os": "*",
 		"url": "*"
 	},
+	"devDependencies": {
+		"swagger-ui-express": "*"
+	},
 	"optionalDependencies": {
 		"google-assistant": "^0.5.2"
 	},

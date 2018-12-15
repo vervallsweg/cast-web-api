@@ -7,6 +7,7 @@ const assistant = require("./lib/assistant");
 const device = require("./lib/device");
 const config = require("./lib/config");
 const deviceId = require("./lib/device/id");
+const swagger = require("./lib/swagger");
 
 startApi();
 
@@ -23,6 +24,7 @@ function createWebServer() {
 	webserver.use(device);
 	webserver.use(deviceId);
 	webserver.use(config);
+	webserver.use(swagger);
 
 	webserver.use('/assistant/setup/ui', Express.static('./lib/assistant/setup/ui'));
 
