@@ -9,7 +9,6 @@
       "url": "https://www.gnu.org/licenses/gpl-3.0.en.html"
     }
   },
-  "host": "127.0.0.1:3000",
   "tags": [
     {
       "name": "device",

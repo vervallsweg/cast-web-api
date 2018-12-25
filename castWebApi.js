@@ -1,4 +1,5 @@
 const Express = require('express');
+const bodyParser = require('body-parser');
 const configuration = require("./lib/config/config.js");
 
 configuration.init(process.argv.slice(2));
@@ -16,9 +17,9 @@ function startApi() {
 	createWebServer();
 }
 
-//WEBSERVER
 function createWebServer() {
 	const webserver = Express();
+	webserver.use(bodyParser.json());
 
 	webserver.use(assistant);
 	webserver.use(device);

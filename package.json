@@ -22,7 +22,7 @@
 		"google-tts-api": "*",
 		"http": "*",
 		"jsonfile": "*",
-		"mdns-cast-browser": ">1.0.1",
+		"mdns-cast-browser": ">1.0.2",
 		"minimist": "*",
 		"node-fetch": "^2.2.0",
 		"os": "*",
