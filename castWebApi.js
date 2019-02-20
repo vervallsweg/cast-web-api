@@ -5,6 +5,7 @@ const configuration = require("./lib/config/config.js");
 configuration.init(process.argv.slice(2));
 
 const assistant = require("./lib/assistant");
+const callback = require("./lib/callback");
 const device = require("./lib/device");
 const config = require("./lib/config");
 const deviceId = require("./lib/device/id");
@@ -22,6 +23,7 @@ function createWebServer() {
 	webserver.use(bodyParser.json());
 
 	webserver.use(assistant);
+	webserver.use(callback);
 	webserver.use(device);
 	webserver.use(deviceId);
 	webserver.use(config);

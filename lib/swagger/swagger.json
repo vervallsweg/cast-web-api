@@ -25,6 +25,10 @@
         "description": "Find out more about the Google Assistant API",
         "url": "http://swagger.io"
       }
+    },
+    {
+      "name": "callback",
+      "description": "Sends HTTP callbacks on CastDevice update"
     }
   ],
   "schemes": [
@@ -915,6 +919,220 @@
           }
         }
       }
+    },
+    "/callback": {
+      "get": {
+        "tags": [
+          "callback"
+        ],
+        "summary": "List all registered callbacks",
+        "description": "Sends a http package to a http url as soon as a device status or link changes.",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "callback"
+        ],
+        "summary": "Create a new callback",
+        "description": "Create a new callback, identified by its url. If a callback with the same url already exists, it will be overwritten.",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "callback"
+        ],
+        "summary": "Update an existing callback",
+        "description": "Update an existing callback, identified by its url. Only the settings will be changed.",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "callback"
+        ],
+        "summary": "Delete an existing callback",
+        "description": "Delete an existing callback, identified by its url.",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/callback/{url}": {
+      "get": {
+        "tags": [
+          "callback"
+        ],
+        "summary": "Get a callback by url",
+        "description": "Sends a http package to a http url as soon as a device status or link changes.",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -1052,6 +1270,19 @@
         "mediaImageUrl": {
           "type": "string",
           "description": "https://developers.google.com/cast/docs/reference/messages#Image"
+        }
+      }
+    },
+    "Callback": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "HTTP url to which packages will be send"
+        },
+        "settings": {
+          "type": "string",
+          "description": "To be detailed"
         }
       }
     }
