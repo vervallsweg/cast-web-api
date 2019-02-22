@@ -604,10 +604,8 @@
             }
           }
         }
-      }
-    },
-    "/config/version/{level}": {
-      "get": {
+      },
+      "put": {
         "tags": [
           "config"
         ],
@@ -647,6 +645,41 @@
           },
           "500": {
             "description": "Error getting latest version",
+            "schema": {
+              "$ref": "#/definitions/Response"
+            }
+          }
+        }
+      }
+    },
+    "/config/assistant/tokenUrl": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Pause media that is playing on the device",
+        "description": "",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the cast device to use",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "$ref": "#/definitions/Device"
+            }
+          },
+          "404": {
+            "description": "Device not found",
             "schema": {
               "$ref": "#/definitions/Response"
             }
@@ -1283,6 +1316,64 @@
         "settings": {
           "type": "string",
           "description": "To be detailed"
+        }
+      }
+    },
+    "Config": {
+      "type": "object",
+      "properties": {
+        "api": {
+          "type": "object",
+          "description": "HTTP url to which packages will be send",
+          "properties": {
+            "debug": {
+              "type": "boolean"
+            },
+            "logLevel": {
+              "type": "object",
+              "properties": {
+                "info": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "boolean"
+                },
+                "server": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "version": {
+              "type": "object",
+              "properties": {
+                "this": {
+                  "type": "string"
+                },
+                "latest": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "assistant": {
+          "type": "object",
+          "description": "HTTP url to which packages will be send",
+          "properties": {
+
+          }
+        },
+        "device": {
+          "type": "object",
+          "description": "HTTP url to which packages will be send",
+          "properties": {
+            "autoConnect": {
+              "type": "boolean"
+            },
+            "reconnectTimeout": {
+              "type": "integer"
+            }
+          }
         }
       }
     }

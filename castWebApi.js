@@ -29,7 +29,7 @@ function createWebServer() {
 	webserver.use(config);
 	webserver.use(swagger);
 
-	webserver.use('/assistant/setup/ui', Express.static('./lib/assistant/setup/ui'));
+	webserver.use('/assistant/setup', Express.static('./lib/assistant/setup'));
 
 	webserver.get('/', function (req, res) {
 		res.json({castWebApi: `v${configuration.thisVersion}`});
