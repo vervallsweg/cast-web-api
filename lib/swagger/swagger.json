@@ -576,31 +576,16 @@
         "tags": [
           "config"
         ],
-        "summary": "Pause media that is playing on the device",
+        "summary": "Get the current configuration",
         "description": "",
         "produces": [
           "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of the cast device to use",
-            "required": true,
-            "type": "string"
-          }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
             "schema": {
-              "$ref": "#/definitions/Device"
-            }
-          },
-          "404": {
-            "description": "Device not found",
-            "schema": {
-              "$ref": "#/definitions/Response"
+              "$ref": "#/definitions/Config"
             }
           }
         }
@@ -609,45 +594,31 @@
         "tags": [
           "config"
         ],
-        "summary": "Pause media that is playing on the device",
+        "summary": "Update the configuration",
         "description": "",
         "produces": [
           "application/json"
         ],
         "parameters": [
           {
-            "name": "level",
-            "in": "path",
-            "description": "ID of the cast device to use",
+            "in": "body",
+            "name": "body",
+            "description": "Config object, only with the properties that need to be updated",
             "required": true,
-            "type": "string",
-            "enum": [
-              "this",
-              "latest"
-            ]
+            "schema": {
+              "$ref": "#/definitions/Config"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
             "schema": {
-              "properties": {
-                "this": {
-                  "type": "string",
-                  "description": "The version of this instance"
-                },
-                "latest": {
-                  "type": "string",
-                  "description": "Latest version available"
-                }
-              }
+              "$ref": "#/definitions/Config"
             }
           },
           "500": {
-            "description": "Error getting latest version",
-            "schema": {
-              "$ref": "#/definitions/Response"
-            }
+            "description": "Error saving a property"
           }
         }
       }
@@ -657,29 +628,29 @@
         "tags": [
           "config"
         ],
-        "summary": "Pause media that is playing on the device",
-        "description": "",
+        "summary": "Get the Google account login URL",
+        "description": "Required for the user to login, grant permissions and generate a oAuth token.",
         "produces": [
           "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of the cast device to use",
-            "required": true,
-            "type": "string"
-          }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
             "schema": {
-              "$ref": "#/definitions/Device"
+              "type": "object",
+              "properties": {
+                "repsonse": {
+                  "type": "string",
+                  "default": "ok"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
             }
           },
-          "404": {
-            "description": "Device not found",
+          "500": {
+            "description": "ClientID/Secret error",
             "schema": {
               "$ref": "#/definitions/Response"
             }
@@ -813,146 +784,6 @@
         }
       }
     },
-    "/assistant/setup/id/{clientID}": {
-      "get": {
-        "tags": [
-          "assistant"
-        ],
-        "summary": "1. Google Assistant SDK Client ID",
-        "description": "Will be saved in plain text ./assistant/client_info.json",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "clientID",
-            "in": "path",
-            "description": "Client ID of your Google Assistant SDK",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "schema": {
-              "$ref": "#/definitions/Response"
-            }
-          },
-          "500": {
-            "description": "Write error",
-            "schema": {
-              "$ref": "#/definitions/Response"
-            }
-          }
-        }
-      }
-    },
-    "/assistant/setup/secret/{clientSecret}": {
-      "get": {
-        "tags": [
-          "assistant"
-        ],
-        "summary": "2. Google Assistant SDK Client Secret",
-        "description": "Will be saved in plain text ./assistant/client_info.json",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "clientSecret",
-            "in": "path",
-            "description": "Client secret of your Google Assistant SDK",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "schema": {
-              "$ref": "#/definitions/Response"
-            }
-          },
-          "500": {
-            "description": "Write error",
-            "schema": {
-              "$ref": "#/definitions/Response"
-            }
-          }
-        }
-      }
-    },
-    "/assistant/setup/{oAuthToken}": {
-      "get": {
-        "tags": [
-          "assistant"
-        ],
-        "summary": "3. Google account oAuth token",
-        "description": "Will be saved in plain text ./assistant/tokens.json",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "oAuthToken",
-            "in": "path",
-            "description": "oAuthToken the user receives after granting permission",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "schema": {
-              "$ref": "#/definitions/Response"
-            }
-          },
-          "500": {
-            "description": "Write error or clientID/secret error",
-            "schema": {
-              "$ref": "#/definitions/Response"
-            }
-          }
-        }
-      }
-    },
-    "/assistant/setup/getTokenUrl": {
-      "get": {
-        "tags": [
-          "assistant"
-        ],
-        "summary": "Get the Google account login URL",
-        "description": "Required for the user to login, grant permissions and generate a oAuth token.",
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "repsonse": {
-                  "type": "string",
-                  "default": "ok"
-                },
-                "url": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "ClientID/Secret error",
-            "schema": {
-              "$ref": "#/definitions/Response"
-            }
-          }
-        }
-      }
-    },
     "/callback": {
       "get": {
         "tags": [
@@ -967,15 +798,9 @@
           "200": {
             "description": "Successful operation",
             "schema": {
-              "type": "object",
-              "properties": {
-                "repsonse": {
-                  "type": "string",
-                  "default": "ok"
-                },
-                "url": {
-                  "type": "string"
-                }
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Callback"
               }
             }
           }
@@ -987,6 +812,17 @@
         ],
         "summary": "Create a new callback",
         "description": "Create a new callback, identified by its url. If a callback with the same url already exists, it will be overwritten.",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Callback object, that should be created",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Callback"
+            }
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -999,27 +835,12 @@
                 "repsonse": {
                   "type": "string",
                   "default": "ok"
-                },
-                "url": {
-                  "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "repsonse": {
-                  "type": "string",
-                  "default": "ok"
-                },
-                "url": {
-                  "type": "string"
-                }
-              }
-            }
+            "description": "Bad request"
           }
         }
       },
@@ -1032,6 +853,17 @@
         "produces": [
           "application/json"
         ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Callback object, only with the properties that need to be updated",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Callback"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful operation",
@@ -1049,34 +881,10 @@
             }
           },
           "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "repsonse": {
-                  "type": "string",
-                  "default": "ok"
-                },
-                "url": {
-                  "type": "string"
-                }
-              }
-            }
+            "description": "Bad request"
           },
           "404": {
-            "description": "Not found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "repsonse": {
-                  "type": "string",
-                  "default": "ok"
-                },
-                "url": {
-                  "type": "string"
-                }
-              }
-            }
+            "description": "Not found"
           }
         }
       },
@@ -1089,6 +897,17 @@
         "produces": [
           "application/json"
         ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Callback object, with id that should be deleted",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Callback"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful operation",
@@ -1098,42 +917,15 @@
                 "repsonse": {
                   "type": "string",
                   "default": "ok"
-                },
-                "url": {
-                  "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "repsonse": {
-                  "type": "string",
-                  "default": "ok"
-                },
-                "url": {
-                  "type": "string"
-                }
-              }
-            }
+            "description": "Bad request"
           },
           "404": {
-            "description": "Not found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "repsonse": {
-                  "type": "string",
-                  "default": "ok"
-                },
-                "url": {
-                  "type": "string"
-                }
-              }
-            }
+            "description": "Not found"
           }
         }
       }
@@ -1143,8 +935,16 @@
         "tags": [
           "callback"
         ],
-        "summary": "Get a callback by url",
-        "description": "Sends a http package to a http url as soon as a device status or link changes.",
+        "summary": "Get a callback object by url",
+        "parameters": [
+          {
+            "name": "url",
+            "in": "path",
+            "description": "Callback url",
+            "required": true,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -1152,17 +952,11 @@
           "200": {
             "description": "Successful operation",
             "schema": {
-              "type": "object",
-              "properties": {
-                "repsonse": {
-                  "type": "string",
-                  "default": "ok"
-                },
-                "url": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/Callback"
             }
+          },
+          "404": {
+            "description": "Callback not found"
           }
         }
       }
@@ -1314,8 +1108,11 @@
           "description": "HTTP url to which packages will be send"
         },
         "settings": {
-          "type": "string",
-          "description": "To be detailed"
+          "type": "object",
+          "description": "To be detailed",
+          "properties": {
+
+          }
         }
       }
     },
@@ -1324,12 +1121,13 @@
       "properties": {
         "api": {
           "type": "object",
-          "description": "HTTP url to which packages will be send",
           "properties": {
             "debug": {
+              "description": "Toggles debugging log messages",
               "type": "boolean"
             },
             "logLevel": {
+              "description": "Toggles log message level",
               "type": "object",
               "properties": {
                 "info": {
@@ -1344,12 +1142,14 @@
               }
             },
             "version": {
+              "description": "cast-web-api version info",
               "type": "object",
               "properties": {
                 "this": {
                   "type": "string"
                 },
                 "latest": {
+                  "description": "Gets latest cast-web-api version from GitHub",
                   "type": "string"
                 }
               }
@@ -1358,20 +1158,35 @@
         },
         "assistant": {
           "type": "object",
-          "description": "HTTP url to which packages will be send",
+          "description": "Will be saved in plain text ./assistant/client_info?tokens.json",
           "properties": {
-
+            "id": {
+              "description": "1. Google Assistant SDK Client ID",
+              "type": "boolean"
+            },
+            "secret": {
+              "type": "boolean",
+              "description": "2. Google Assistant SDK Client Secret"
+            },
+            "token": {
+              "type": "boolean",
+              "description": "3. Google account oAuth token"
+            }
           }
         },
         "device": {
           "type": "object",
-          "description": "HTTP url to which packages will be send",
+          "description": "Cast device related settings",
           "properties": {
             "autoConnect": {
-              "type": "boolean"
+              "description": "Cast devices auto connect on discovery",
+              "type": "boolean",
+              "default": true
             },
             "reconnectTimeout": {
-              "type": "integer"
+              "description": "Cast devices trie to reconnect every x ms if it goes down",
+              "type": "integer",
+              "default": 10000
             }
           }
         }
