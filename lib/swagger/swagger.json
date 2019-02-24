@@ -697,8 +697,8 @@
         }
       }
     },
-    "/assistant/broadcast/{message}": {
-      "get": {
+    "/assistant/broadcast": {
+      "post": {
         "tags": [
           "assistant"
         ],
@@ -709,11 +709,13 @@
         ],
         "parameters": [
           {
-            "name": "message",
-            "in": "path",
-            "description": "Message you want to broadcast",
+            "in": "body",
+            "name": "body",
+            "description": "Message object, that should be broadcast",
             "required": true,
-            "type": "string"
+            "schema": {
+              "$ref": "#/definitions/Message"
+            }
           }
         ],
         "responses": {
@@ -722,6 +724,9 @@
             "schema": {
               "$ref": "#/definitions/Response"
             }
+          },
+          "400": {
+            "description": "Bad request"
           },
           "500": {
             "description": "Assistant error",
@@ -732,8 +737,8 @@
         }
       }
     },
-    "/assistant/command/{command}": {
-      "get": {
+    "/assistant/command": {
+      "post": {
         "tags": [
           "assistant"
         ],
@@ -744,11 +749,13 @@
         ],
         "parameters": [
           {
-            "name": "command",
-            "in": "path",
-            "description": "Command you want the Assistant to fulfil",
+            "in": "body",
+            "name": "body",
+            "description": "Message object, that should be broadcast",
             "required": true,
-            "type": "string"
+            "schema": {
+              "$ref": "#/definitions/Message"
+            }
           }
         ],
         "responses": {
@@ -757,6 +764,9 @@
             "schema": {
               "$ref": "#/definitions/Response"
             }
+          },
+          "400": {
+            "description": "Bad request"
           },
           "500": {
             "description": "Assistant error",
@@ -1189,6 +1199,15 @@
               "default": 10000
             }
           }
+        }
+      }
+    },
+    "Message": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "description": "Message for the Goggle Assistant",
+          "type": "string"
         }
       }
     }
