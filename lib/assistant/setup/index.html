@@ -107,30 +107,12 @@
         <!-- step3 -->
         <h2>3. Authorize and save</h2>
         <p>Click the button below to authorize cast-web-api with your Google Account.<p>
-        <a href="https://developers.google.com/assistant/sdk/guides/service/python/embed/config-dev-project-and-account" target="_blank" class="ui button" id="auth-btn">Authorize</a>
-        <script>
-            $.ajax("/config/assistant/tokenUrl/")
-                .always(function () {
-                    $("#auth-btn").addClass("loading");
-                }).done(function (r) {
-                    console.log(r.url)
-                    $("#auth-btn").removeClass("loading").attr("href", r.url);
-                }).fail(function (r) {
-                    let e = "No error message provided.";
-                    r && r.responseJSON && (e = r.responseJSON.error);
-                    showMessage('negative', 'An error has occurred', e);
-                    $("#auth-btn").removeClass("loading").addClass("red");
-                        $("#auth-btn > div").text("Error getting auth url");
-                    });
-        </script>
+        <a href="#" target="_blank" class="ui button disabled" id="auth-btn">Authorize</a>
         <p>Paste the oAuth code you copied before, press save and wait for the confirmation.</p>
         <div class="ui form">
             <div class="field"><label>oAuth code</label><input type="text" placeholder="Code" id="token"></div>
         </div>
         <br>
-        <script>function setInfoLink() {
-            $(".ui.message.positive > p > strong > a").attr("href", "https://vervallsweg.github.io/cast-web/category/faq/").attr("target", "_blank");
-        };</script>
         <button style="float: right;" class="ui right labeled icon primary button" id="save-btn-code"><i
                 class="save icon"></i>
             <div>Save</div>
@@ -146,10 +128,9 @@
                     })
                     .always(function () {
                         $("#save-btn-code").removeClass("right labeled icon").addClass("loading");
-                    }).done(function (e) {
-                        showMessage('positive','Done!',`You are all set. Now you can select the cast-web-api device in your Smartthings app as a device for reading out messages. <strong>Remember: only the speech synthesis capability (e.g. speak) is supported <a>more info</a>.</strong>`);
+                    }).done(function (e) { //TODO: add more info url
+                        showMessage('positive','Done!',`You are all set. Now you can select the cast-web-api device in your Smartthings app as a device for reading out messages. <strong>Remember: only the speech synthesis capability (e.g. speak) is supported <a href="#">more info</a>.</strong>`);
                         tokenSuccess = true;
-                        setInfoLink(); //TODO: what dis?
                         markButtons({token: true});
                     }).fail(function (e) {
                         let s = "No error message provided.";
@@ -204,10 +185,12 @@
                     $("#save-btn-client").removeClass("loading primary left red").addClass("right labeled icon green");
                     $("#save-btn-client > div").text("Done");
                     $("#save-btn-client > i").removeClass("save times").addClass("check");
+                    getTokenUrl();
                 } else {
                     $("#save-btn-client").removeClass("loading red green left").addClass("right labeled icon primary");
                     $("#save-btn-client > div").text("Save");
                     $("#save-btn-client > i").removeClass("check times").addClass("save");
+                    $("#auth-btn").removeClass("loading").addClass("disabled").attr("href", "#");
                 }
             }
 
@@ -222,6 +205,22 @@
                     $("#save-btn-code > i").removeClass("check times").addClass("save");
                 }
             }
+        }
+
+        function getTokenUrl() {
+            $.ajax("/config/assistant/tokenUrl/")
+                .always(function () {
+                    $("#auth-btn").addClass("loading");
+                }).done(function (r) {
+                console.log(r.url)
+                $("#auth-btn").removeClass("loading disabled").attr("href", r.url);
+            }).fail(function (r) {
+                let e = "No error message provided.";
+                r && r.responseJSON && (e = r.responseJSON.error);
+                showMessage('negative', 'An error has occurred', e);
+                $("#auth-btn").removeClass("loading").addClass("red disabled");
+                $("#auth-btn > div").text("Error getting auth url");
+            });
         }
     </script>
 </body>
