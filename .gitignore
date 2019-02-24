@@ -3,3 +3,4 @@ npm-debug.log
 client_secret.json
 tokens.json
 .idea
+*.heapsnapshot
