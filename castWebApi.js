@@ -22,6 +22,8 @@ function createWebServer() {
 	const webserver = Express();
 	webserver.use(bodyParser.json());
 
+	webserver.use('/assistant/setup', Express.static('./lib/assistant/setup'));
+
 	webserver.use(assistant);
 	webserver.use(callback);
 	webserver.use(device);
@@ -29,7 +31,6 @@ function createWebServer() {
 	webserver.use(config);
 	webserver.use(swagger);
 
-	webserver.use('/assistant/setup', Express.static('./lib/assistant/setup'));
 
 	webserver.get('/', function (req, res) {
 		res.json({castWebApi: `v${configuration.thisVersion}`});
