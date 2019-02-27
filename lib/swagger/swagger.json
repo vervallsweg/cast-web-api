@@ -1189,7 +1189,8 @@
           "description": "Cast device related settings",
           "properties": {
             "autoConnect": {
-              "description": "Cast devices auto connect on discovery",
+              "deprecated": true,
+              "description": "Cast devices auto connect on discovery, devices will reconnect regardless on address change",
               "type": "boolean",
               "default": true
             },
