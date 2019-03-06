@@ -1,4 +1,23 @@
 # Changelog
+## v1.1.0
+- Attention: Requires node 7.0.0 or higher
+- Fixed: MDNS library, changed to own mdns-cast-browser #73
+- Added: ES6 class definitions #74
+- Added: GoogleTTS messages over 200 characters #70
+- Added: Google Assistant to broadcast messages
+- Added: API paths for Google Assistant auth
+- Added: Added /assistant/setup wizard for auth
+- Added: seek function
+- Added: global /callback
+- Added: unified /config that can be changed at runtime
+- Added: /swagger for better api documentation
+
+## v1.0.0
+- Updated: all API paths, see docs for more info
+- Added: GoogleTTS option for /playMedia
+- Added: auto reconnect to devices
+- Added: group recognition
+
 ## v0.3
 - fixed issue where certain devices don't show up #59
 - > all credit to @jg123
