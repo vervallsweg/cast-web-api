@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "HTTP API for Google Cast enabled devices. This API is only intendend to be used on your local network not for hosting on the public internet.",
+    "description": "HTTP API for Google Cast enabled devices. This API is only intended to be used on your local network not for hosting on the public internet.",
     "version": "1.1.0",
     "title": "cast-web-api",
     "license": {
@@ -310,6 +310,48 @@
             "description": "ID of the cast device to use",
             "required": true,
             "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "$ref": "#/definitions/Response"
+            }
+          },
+          "404": {
+            "description": "Device not found",
+            "schema": {
+              "$ref": "#/definitions/Response"
+            }
+          }
+        }
+      }
+    },
+    "/device/{id}/seek/{seconds}": {
+      "get": {
+        "tags": [
+          "device"
+        ],
+        "summary": "Seeks playback to the seconds specified",
+        "description": "",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the cast device to use",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "targetVolume",
+            "in": "path",
+            "description": "Seconds you want to set the current media playback to.",
+            "required": true,
+            "type": "integer"
           }
         ],
         "responses": {
@@ -668,15 +710,6 @@
         "produces": [
           "application/json"
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of the cast device to use",
-            "required": true,
-            "type": "string"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful operation",
@@ -783,7 +816,7 @@
           "assistant"
         ],
         "summary": "Visual HTML guide that guides the user through install",
-        "description": "For use in browsers. Calls all documented /setp endpoints.",
+        "description": "For use in browsers. Calls all documented /config endpoints and reads/sets assistant values.",
         "produces": [
           "text/html"
         ],

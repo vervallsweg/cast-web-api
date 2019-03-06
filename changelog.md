@@ -6,8 +6,11 @@
 - Added: GoogleTTS messages over 200 characters #70
 - Added: Google Assistant to broadcast messages
 - Added: API paths for Google Assistant auth
-- Added: Added /assistant/setup wizzard for auth
+- Added: Added /assistant/setup wizard for auth
 - Added: seek function
+- Added: global /callback
+- Added: unified /config that can be changed at runtime
+- Added: /swagger for better api documentation
 
 ## v1.0.0
 - Updated: all API paths, see docs for more info
