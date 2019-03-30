@@ -853,16 +853,19 @@
         "tags": [
           "callback"
         ],
-        "summary": "Create a new callback",
-        "description": "Create a new callback, identified by its url. If a callback with the same url already exists, it will be overwritten.",
+        "summary": "Create new callbacks",
+        "description": "Create new callbacks, identified by their url. If a callback with the same url already exists, it will be overwritten.",
         "parameters": [
           {
             "in": "body",
             "name": "body",
-            "description": "Callback object, that should be created",
+            "description": "Array with callback objects, that should be created",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/Callback"
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Callback"
+              }
             }
           }
         ],
@@ -891,8 +894,8 @@
         "tags": [
           "callback"
         ],
-        "summary": "Update an existing callback",
-        "description": "Update an existing callback, identified by its url. Only the settings will be changed.",
+        "summary": "Update existing callbacks",
+        "description": "Update existing callbacks, identified by its url. Only the settings will be changed.",
         "produces": [
           "application/json"
         ],
@@ -900,10 +903,13 @@
           {
             "in": "body",
             "name": "body",
-            "description": "Callback object, only with the properties that need to be updated",
+            "description": "Callback objects, only with the properties that need to be updated",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/Callback"
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Callback"
+              }
             }
           }
         ],
@@ -935,8 +941,8 @@
         "tags": [
           "callback"
         ],
-        "summary": "Delete an existing callback",
-        "description": "Delete an existing callback, identified by its url.",
+        "summary": "Delete existing callbacks",
+        "description": "Delete existing callbacks, identified by its url.",
         "produces": [
           "application/json"
         ],
@@ -944,10 +950,13 @@
           {
             "in": "body",
             "name": "body",
-            "description": "Callback object, with id that should be deleted",
+            "description": "Callback objects, with id that should be deleted",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/Callback"
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Callback"
+              }
             }
           }
         ],
