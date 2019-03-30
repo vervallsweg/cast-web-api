@@ -4,3 +4,5 @@ client_secret.json
 tokens.json
 .idea
 *.heapsnapshot
+callbacks.json
+config.json
