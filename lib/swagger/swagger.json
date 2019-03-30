@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "description": "HTTP API for Google Cast enabled devices. This API is only intended to be used on your local network not for hosting on the public internet.",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "title": "cast-web-api",
     "license": {
       "name": "GNU General Public License v3.0",

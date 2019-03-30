@@ -1,6 +1,6 @@
 {
 	"name": "cast-web-api",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"author": "Tobias Haerke",
 	"engines": {
 		"node": ">= 7.0.0"
@@ -9,6 +9,7 @@
 	"scripts": {
 		"start": "node ./castWebApi.js"
 	},
+	"pkg" : { "assets": [ "node_modules/**/*"]},
 	"bin": {
 		"cast-web-api": "./bin/cast-web-api"
 	},

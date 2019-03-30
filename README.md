@@ -57,6 +57,9 @@ Finally you can also use forever.
 cast-web-api tries to behave like the Google Home app. All available devices will be connected to, if a device goes down, it'll be removed. If it randomly disconnects, it'll try to reconnect.
 The autoConnect behavior can be turned of with the config parameter `autoConnect`. This can be helpful for [large speaker groups](https://github.com/vervallsweg/cast-web-api/issues/92).
 
+### Parameters
+
+Every changed parameter will be saved in `/config/config.json`.
 
 ### Documentation
 
