@@ -1161,9 +1161,12 @@
         },
         "settings": {
           "type": "object",
-          "description": "To be detailed",
+          "description": "Settings for the specific callback.",
           "properties": {
-
+           "heartbeat": {
+             "type": "integer",
+              "description": "Interval (ms) in which the api should send a ping to the client. 0 disables the heartbeat."
+           }
           }
         }
       }
