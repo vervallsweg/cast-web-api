@@ -1,40 +1,76 @@
-const Express = require('express');
-const bodyParser = require('body-parser');
-const configuration = require("./lib/config/config.js");
+const Config = require('./lib/config/config');
+const Manager = require('./manager');
+const Ora = require('ora');
+const Table = require('cli-table3');
+const prog = require('caporal');
 
-configuration.init(process.argv.slice(2));
+prog
+    .version(Config.thisVersion)
 
-const assistant = require("./lib/assistant");
-const callback = require("./lib/callback");
-const device = require("./lib/device");
-const config = require("./lib/config");
-const deviceId = require("./lib/device/id");
-const swagger = require("./lib/swagger");
+    .command('start', 'Start cast-web-api as daemon')
+    .option('-H --hostname <host>', 'Hostname cast-web-api webserver should bind to')
+    .option('-p --port <port>', 'Port cast-web-api webserver should bind to')
+    .option('-d --debug <port>', 'Toggles debugging log messages')
+    .option('-a --autoConnect <port>', 'Cast devices auto connect on discovery, devices will reconnect regardless on address change.')
+    .option('-r --reconnectTimeout <port>', 'Cast devices trie to reconnect every x ms if it goes down')
 
-startApi();
+    .action((args, options, logger) => {
+        let spinner = Ora('Starting cast-web-api').start();
+        Manager.start(process.argv)
+            .then(value => {
+                let table = getTableHead();
+                value.forEach(({pid='-', name='-', pm2_env={status: '-'}, address='-'}) => {
+                    table.push([pid, name, pm2_env.status, address, pm2_env.pm_out_log_path]);
+                });
+                spinner.succeed("Started service");
+                console.log(table.toString());
+            })
+            .catch(error => {
+                spinner.fail("Error starting cast-web-api:");
+            });
+    })
 
-function startApi() {
-	console.log('cast-web-api v'+configuration.thisVersion);
-	createWebServer();
-}
+    .command('stop', 'Stop the cast-web-api daemon')
+    .action((args, options, logger) => {
+        let spinner = Ora('Stopping cast-web-api').start();
+        Manager.stop()
+            .then(value => {
+                let table = getTableHead();
+                value.forEach(({pid='-', name='-', pm2_env={status: '-'}, address='-'}) => {
+                    table.push([pid, name, pm2_env.status, address, pm2_env.pm_out_log_path]);
+                });
+                spinner.succeed("Stopped service");
+                console.log(table.toString());
+            })
+            .catch(error => {
+                spinner.fail("Error stopping cast-web-api:");
+                console.log(error);
+            });
+    })
 
-function createWebServer() {
-	const webserver = Express();
-	webserver.use(bodyParser.json());
+    .command('status', 'Check status of the cast-web-api daemon')
+    .alias('info')
+    .action((args, options, logger) => {
+        let spinner = Ora('Getting cast-web-api status').start();
+        Manager.status()
+            .then(value => {
+                let table = getTableHead();
+                value.forEach(({pid='-', name='-', pm2_env={status: '-', pm_out_log_path:'-'}, address='-'}) => {
+                    table.push([pid, name, pm2_env.status, address, pm2_env.pm_out_log_path]);
+                });
+                spinner.succeed("cast-web-api status");
+                console.log(table.toString());
+            })
+            .catch(error => {
+                spinner.fail("Error getting status of cast-web-api:");
+                console.log(error);
+            });
+    });
 
-	webserver.use(assistant);
-	webserver.use(callback);
-	webserver.use(device);
-	webserver.use(deviceId);
-	webserver.use(config);
-	webserver.use(swagger);
+prog.parse(process.argv);
 
-
-	webserver.get('/', function (req, res) {
-		res.json({castWebApi: `v${configuration.thisVersion}`});
-	});
-
-	webserver.listen(configuration.port, () => {
-		console.log(`cast-web-api running at http://${configuration.hostname}:${configuration.port}`);
-	});
+function getTableHead() {
+    return new Table({
+        head: ['pid', 'name', 'status', 'address', 'log'],
+    });
 }

@@ -9,14 +9,20 @@
 	"scripts": {
 		"start": "node ./castWebApi.js"
 	},
-	"pkg" : { "assets": [ "node_modules/**/*"]},
+	"pkg": {
+		"assets": [
+			"node_modules/**/*"
+		]
+	},
 	"bin": {
 		"cast-web-api": "./bin/cast-web-api"
 	},
 	"dependencies": {
+		"caporal": "^1.1.0",
 		"castv2": "*",
 		"castv2-client": "^1.2.0",
 		"chalk": "^2.4.1",
+		"cli-table3": "^0.5.1",
 		"debug": "^2.6.9",
 		"express": "^4.16.3",
 		"google-auth-library": "0.10.0",
@@ -26,7 +32,9 @@
 		"mdns-cast-browser": ">1.0.2",
 		"minimist": "*",
 		"node-fetch": "^2.2.0",
+		"ora": "^3.4.0",
 		"os": "*",
+		"pm2": "^3.4.1",
 		"url": "*"
 	},
 	"devDependencies": {

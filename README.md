@@ -13,45 +13,31 @@ This API is only intended to be used on your local network **not for hosting on 
 You might run into [issues](https://github.com/vervallsweg/cast-web-api/issues/79) with the optional Google-Assistant integration.
 
 ## First steps
-    $ cast-web-api
+    $ cast-web-api start
 
 The server runs on your network IP:3000 by default. On error it defaults to 127.0.0.1. Adjustable via:
 
-	$ cast-web-api --hostname=192.168.0.11 --port=8080
-
-## Run as daemon
-[Forever](https://github.com/foreverjs/forever "forever") is recommended:
-
-	$ npm install forever -g
-
-### Linux/OSX
-
-	$ forever start `which cast-web-api`
-	$ forever stop `which cast-web-api`
-
-If you'd like to always run the API in the background even after reboots, you can use cron.
-
-	$ # While using forever
-	$ (crontab -l 2>/dev/null; echo "@reboot `which forever` `which cast-web-api`")| crontab -
-	$ # While using vanilla node
-	$ (crontab -l 2>/dev/null; echo "@reboot `which node` `which cast-web-api` >> ~/cast-web-api.log")| crontab -
-
-Adjust the command to pass parameters via `crontab -e`. The vanilla node version will log output to `~/cast-web-api.log` e.g. `/home/yourname/cast-web-api.log`.
-
-### Windows
-
-	> cast-web-api --windows
-
-Copy the resulting path and change directory to it:
-
-	> cd {path you just copied}
-
-Finally you can also use forever.
-
-	> forever start castWebApi.js
-	> forever stop castWebApi.js
+	$ cast-web-api start -H 192.168.0.11 -p 8080
 
 ## Usage
+
+    $ cast-web-api -h
+    
+       USAGE
+    
+         cast-web-api <command> [options]
+    
+       COMMANDS
+    
+         start               Start cast-web-api as daemon           
+         stop                Stop the cast-web-api daemon           
+         status              Check status of the cast-web-api daemon
+         help <command>      Display help for a specific command    
+    
+       GLOBAL OPTIONS
+    
+         -h, --help         Display help                                      
+         -V, --version      Display version
 
 ### Basics
 cast-web-api tries to behave like the Google Home app. All available devices will be connected to, if a device goes down, it'll be removed. If it randomly disconnects, it'll try to reconnect.
@@ -60,6 +46,10 @@ The autoConnect behavior can be turned of with the config parameter `autoConnect
 ### Parameters
 
 Every changed parameter will be saved in `/config/config.json`.
+
+### Run on system startup
+
+TODO:
 
 ### Documentation
 
