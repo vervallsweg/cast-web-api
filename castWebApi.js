@@ -65,6 +65,44 @@ prog
                 spinner.fail("Error getting status of cast-web-api:");
                 console.log(error);
             });
+    })
+
+    .command('startup', 'Start the cast-web-api daemon on system startup (Linux/Mac ONLY!)')
+    .action((args, options, logger) => {
+        let spinner = Ora('Setting up startup: ').start();
+        Manager.startup()
+            .then(value => {
+                spinner.succeed("cast-web-api startup");
+                console.log(value);
+            })
+            .catch(error => {
+                if (error.stdout.includes("sudo env")) {
+                    spinner.fail("Permissions required. To do this, just copy/paste and run this command:");
+                } else {
+                    spinner.fail(error.error.message);
+                    console.error(error);
+                }
+                console.log(error.stdout);
+            });
+    })
+
+    .command('unstartup', 'Remove the cast-web-api daemon start on system startup (Linux/Mac ONLY!)')
+    .action((args, options, logger) => {
+        let spinner = Ora('Setting up unstartup: ').start();
+        Manager.unstartup()
+            .then(value => {
+                spinner.succeed("cast-web-api unstartup");
+                console.log(value);
+            })
+            .catch(error => {
+                if (error.stdout.includes("sudo env")) {
+                    spinner.fail("Permissions required. To do this, just copy/paste and run this command:");
+                } else {
+                    spinner.fail(error.error.message);
+                    console.error(error);
+                }
+                console.log(error.stdout);
+            });
     });
 
 prog.parse(process.argv);

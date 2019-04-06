@@ -1,4 +1,5 @@
 const pm2 = require('pm2');
+const { exec } = require('child_process');
 
 class Manager {
     static start(argument) {
@@ -55,6 +56,32 @@ class Manager {
                     pm2.disconnect();
                     resolve([]);
                 });
+        });
+    }
+
+    static startup() {
+        return new Promise((resolve, reject) => {
+            let cmd = require.resolve('pm2').replace('index.js', 'bin/pm2');
+            exec(`${cmd} startup`, (error, stdout, stderr) => {
+                if (error || stderr) {
+                    reject({error: error, stdout: stdout, stderr: stderr});
+                }
+                resolve(stdout);
+            });
+        });
+        // platform, opts, cb //TODO: documentation parameters (platform, errback) broke, this param hack works for now
+        // pm2.startup(false, { args:[0, { name: function () { return "startup"; }}] }, (err, result) => {})
+    }
+
+    static unstartup() {
+        return new Promise((resolve, reject) => {
+            let cmd = require.resolve('pm2').replace('index.js', 'bin/pm2');
+            exec(`${cmd} unstartup`, (error, stdout, stderr) => {
+                if (error || stderr) {
+                    reject({error: error, stdout: stdout, stderr: stderr});
+                }
+                resolve(stdout);
+            });
         });
     }
 
