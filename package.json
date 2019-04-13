@@ -41,7 +41,8 @@
 		"swagger-ui-express": "*"
 	},
 	"optionalDependencies": {
-		"google-assistant": "^0.5.2"
+		"google-assistant": "^0.5.2",
+		"pm2-windows-service": "0.2.1"
 	},
 	"repository": {
 		"type": "git",

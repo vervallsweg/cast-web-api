@@ -60,6 +60,12 @@ class Manager {
     }
 
     static startup() {
+        let windows = process.platform === "win32";
+        if (windows) return Manager.startupWin();
+        else return Manager.startupPm2();
+    }
+
+    static startupPm2() {
         return new Promise((resolve, reject) => {
             let cmd = require.resolve('pm2').replace('index.js', 'bin/pm2');
             exec(`${cmd} startup`, (error, stdout, stderr) => {
@@ -73,10 +79,40 @@ class Manager {
         // pm2.startup(false, { args:[0, { name: function () { return "startup"; }}] }, (err, result) => {})
     }
 
+    static startupWin() {
+        return new Promise((resolve, reject) => {
+            let cmd = require.resolve('pm2-windows-service').replace('src/index.js', 'bin/pm2-service-install');
+            exec(`${cmd}`, (error, stdout, stderr) => {
+                if (error || stderr) {
+                    reject({error: error, stdout: stdout, stderr: stderr});
+                }
+                resolve(stdout);
+            });
+        });
+    }
+
     static unstartup() {
+        let windows = process.platform === "win32";
+        if (windows) return Manager.unstartupWin();
+        else return Manager.unstartupPm2();
+    }
+
+    static unstartupPm2() {
         return new Promise((resolve, reject) => {
             let cmd = require.resolve('pm2').replace('index.js', 'bin/pm2');
             exec(`${cmd} unstartup`, (error, stdout, stderr) => {
+                if (error || stderr) {
+                    reject({error: error, stdout: stdout, stderr: stderr});
+                }
+                resolve(stdout);
+            });
+        });
+    }
+
+    static unstartupWin() {
+        return new Promise((resolve, reject) => {
+            let cmd = require.resolve('pm2-windows-service').replace('src/index.js', 'bin/pm2-service-uninstall');
+            exec(`${cmd}`, (error, stdout, stderr) => {
                 if (error || stderr) {
                     reject({error: error, stdout: stdout, stderr: stderr});
                 }
