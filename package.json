@@ -42,7 +42,7 @@
 	},
 	"optionalDependencies": {
 		"google-assistant": "^0.5.2",
-		"pm2-windows-service": "0.2.1"
+		"pm2-windows-startup": "1.0.3"
 	},
 	"repository": {
 		"type": "git",

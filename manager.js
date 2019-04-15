@@ -1,3 +1,4 @@
+const fs = require('fs')
 const pm2 = require('pm2');
 const { exec } = require('child_process');
 
@@ -60,9 +61,17 @@ class Manager {
     }
 
     static startup() {
-        let windows = process.platform === "win32";
-        if (windows) return Manager.startupWin();
-        else return Manager.startupPm2();
+        return new Promise((resolve, reject) => {
+            let windows = process.platform === "win32";
+            Manager.save(windows)
+                .then(() => {
+                    if (windows) resolve(Manager.startupWin());
+                    else resolve(Manager.startupPm2());
+                })
+                .catch(error => {
+                    reject({error: {message: "Couldn't save pm2 processes"}, stdout: "", stderr: error});
+                })
+        })
     }
 
     static startupPm2() {
@@ -81,13 +90,12 @@ class Manager {
 
     static startupWin() {
         return new Promise((resolve, reject) => {
-            let cmd = require.resolve('pm2-windows-service').replace('src/index.js', 'bin/pm2-service-install');
-            exec(`${cmd}`, (error, stdout, stderr) => {
-                if (error || stderr) {
-                    reject({error: error, stdout: stdout, stderr: stderr});
-                }
-                resolve(stdout);
-            });
+            let pm2WindowsStartupPath = require.resolve('pm2-windows-startup');
+            Manager.fixWinResurrectBat(pm2WindowsStartupPath.replace('index.js', 'pm2_resurrect.cmd'))
+                .then(()=>{
+                    reject({error: {message: "Windows, to auto start, just copy/paste and run the command below: \n"}, stdout: `node ${pm2WindowsStartupPath} install`, stderr: ""});
+                })
+                .catch(error => {reject(error)});
         });
     }
 
@@ -111,12 +119,40 @@ class Manager {
 
     static unstartupWin() {
         return new Promise((resolve, reject) => {
-            let cmd = require.resolve('pm2-windows-service').replace('src/index.js', 'bin/pm2-service-uninstall');
-            exec(`${cmd}`, (error, stdout, stderr) => {
+            let cmd = `${require.resolve('pm2-windows-startup')} uninstall`;
+            reject({error: {message: "Windows, to stop auto start, just copy/paste and run the command below: \n"}, stdout: `node ${cmd}`, stderr: ""});
+        });
+    }
+
+    static save(windows) {
+        return new Promise((resolve, reject) => {
+            let cmd = `${require.resolve('pm2').replace('index.js', 'bin/pm2')} save`;
+            if (windows) cmd = `node ${require.resolve('pm2').replace('index.js', 'bin\\pm2')} save`;
+            exec(cmd, (error, stdout, stderr) => {
                 if (error || stderr) {
                     reject({error: error, stdout: stdout, stderr: stderr});
                 }
                 resolve(stdout);
+            });
+        });
+    }
+
+    static fixWinResurrectBat(resurrectBatPath) {
+        return new Promise((resolve, reject) => {
+            fs.readFile(resurrectBatPath, 'utf8', (err, data) => {
+                if (err) reject(err); //TODO: adapt to custom object format
+
+                if (!data.includes('\\pm2')) {
+                    let newPM2Path = `node ${require.resolve('pm2').replace('index.js', 'bin\\pm2')}`;
+                    let newResurrectBat = data.replace('pm2', newPM2Path);
+
+                    fs.writeFile(resurrectBatPath, newResurrectBat, 'utf8', err => {
+                        if (err) reject(err); //TODO: adapt to custom object format
+                        else resolve(true);
+                    });
+                } else {
+                    resolve(true);
+                }
             });
         });
     }

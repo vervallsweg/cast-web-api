@@ -76,11 +76,11 @@ prog
                 console.log(value);
             })
             .catch(error => {
-                if (error.stdout.includes("sudo env")) {
+                if (error.stdout && error.stdout.includes("sudo env")) {
                     spinner.fail("Permissions required. To do this, just copy/paste and run this command:");
                 } else {
                     spinner.fail(error.error.message);
-                    console.error(error);
+                    //console.error(error);
                 }
                 console.log(error.stdout);
             });
@@ -99,7 +99,7 @@ prog
                     spinner.fail("Permissions required. To do this, just copy/paste and run this command:");
                 } else {
                     spinner.fail(error.error.message);
-                    console.error(error);
+                    // console.error(error);
                 }
                 console.log(error.stdout);
             });
