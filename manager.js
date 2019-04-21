@@ -216,6 +216,21 @@ class Manager {
             });
         });
     }
+
+    static fixPermission() {
+        return new Promise((resolve, reject) => {
+            let windows = process.platform === "win32";
+            let Config = require('./lib/config/config');
+            let user = process.env.USER;
+            let path = Config.getAbsolutePath();
+
+            if (!windows) {
+                reject({error: {message: "To change permissions, just copy/paste and run the commands below. Change the username if necessary: \n"}, stdout: `chmod -R 0600 ${path}/config\nchown -R ${user} ${path}/config`, stderr: ""});
+            } else {
+                reject({error: {message: "To change permissions, just copy/paste and run the command below. Change the username if necessary: \n"}, stdout: `icacls ${path}\\config /grant ${user}:(gr,gw)`, stderr: ""});
+            }
+        });
+    }
 }
 
 module.exports = Manager;

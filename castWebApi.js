@@ -103,6 +103,20 @@ prog
                 }
                 console.log(error.stdout);
             });
+    })
+
+    .command('fix-perm', 'Changes permissions on /config to current user')
+    .action((args, options, logger) => {
+        let spinner = Ora('Fixing permissions: ').start();
+        Manager.fixPermission()
+            .then(value => {
+                spinner.succeed("/config permissions set");
+                console.log(value);
+            })
+            .catch(error => {
+                spinner.fail(error.error.message);
+                console.log(error.stdout);
+            });
     });
 
 prog.parse(process.argv);
