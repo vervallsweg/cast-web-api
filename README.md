@@ -32,8 +32,9 @@ The server runs on your network IP:3000 by default. On error it defaults to 127.
          start               Start cast-web-api as daemon           
          stop                Stop the cast-web-api daemon           
          status              Check status of the cast-web-api daemon
-         startup             Start the cast-web-api daemon on system startup (Linux/Mac ONLY!)       
-         unstartup           Remove the cast-web-api daemon start on system startup (Linux/Mac ONLY!)
+         startup             Start the cast-web-api daemon on system startup      
+         unstartup           Remove the cast-web-api daemon start on system startup
+         fix-perm            Changes permissions on /config to current user
          help <command>      Display help for a specific command    
     
        GLOBAL OPTIONS
@@ -51,7 +52,6 @@ Every changed parameter will be saved in `/config/config.json`.
 
 ### Run on system startup
 
-#### Linux/macOS
 Enable start cast-web-api on startup.
 
     $ cast-web-api startup
@@ -59,9 +59,6 @@ Enable start cast-web-api on startup.
 Disable start cast-web-api on startup.
 
     $ cast-web-api unstartup
-
-#### Windows
-TODO:
 
 ### Documentation
 
