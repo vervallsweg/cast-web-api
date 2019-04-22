@@ -221,7 +221,7 @@ class Manager {
         return new Promise((resolve, reject) => {
             let windows = process.platform === "win32";
             let Config = require('./lib/config/config');
-            let user = process.env.USER;
+            let user =  process.env.USER || process.env.USERNAME;
             let path = Config.getAbsolutePath();
 
             if (!windows) {
