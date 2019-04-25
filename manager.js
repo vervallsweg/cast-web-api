@@ -79,7 +79,11 @@ class Manager {
             let cmd = require.resolve('pm2').replace('index.js', 'bin/pm2');
             exec(`${cmd} startup`, (error, stdout, stderr) => {
                 if (error || stderr) {
-                    reject({error: error, stdout: stdout, stderr: stderr});
+                    if (stdout && stdout.includes("sudo env")) {
+                        reject({error: {message:"Permissions required. To do this, just copy/paste and run this command: \n"}, stdout: stdout, stderr: stderr});
+                    } else {
+                        reject({error: error, stdout: stdout, stderr: stderr});
+                    }
                 }
                 resolve(stdout);
             });
@@ -110,7 +114,11 @@ class Manager {
             let cmd = require.resolve('pm2').replace('index.js', 'bin/pm2');
             exec(`${cmd} unstartup`, (error, stdout, stderr) => {
                 if (error || stderr) {
-                    reject({error: error, stdout: stdout, stderr: stderr});
+                    if (stdout && stdout.includes("sudo env")) {
+                        reject({error: {message:"Permissions required. To do this, just copy/paste and run this command: \n"}, stdout: stdout, stderr: stderr});
+                    } else {
+                        reject({error: error, stdout: stdout, stderr: stderr});
+                    }
                 }
                 resolve(stdout);
             });
@@ -227,7 +235,7 @@ class Manager {
             if (!windows) {
                 reject({error: {message: "To change permissions, just copy/paste and run the commands below. Change the username if necessary: \n"}, stdout: `chmod -R 0600 ${path}/config\nchown -R ${user} ${path}/config`, stderr: ""});
             } else {
-                reject({error: {message: "To change permissions, just copy/paste and run the command below. Change the username if necessary: \n"}, stdout: `icacls ${path}\\config /grant ${user}:(gr,gw)`, stderr: ""});
+                reject({error: {message: "To change permissions, just copy/paste and run the command below. Change the username if necessary: \n"}, stdout: `icacls ${path}\\config /grant ${user}:M`, stderr: ""});
             }
         });
     }

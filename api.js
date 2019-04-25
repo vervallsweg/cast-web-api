@@ -1,7 +1,6 @@
 const Express = require('express');
 const bodyParser = require('body-parser');
 const configuration = require("./lib/config/config.js");
-const pm2 = require('pm2');
 
 console.log('argv:');
 console.log(process.argv);
