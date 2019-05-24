@@ -8,39 +8,9 @@ Web API for Google Cast enabled devices, based on the [node-castv2](https://gith
 This API is only intended to be used on your local network **not for hosting on the public internet**.
 
 ## Installation
-	$ npm install cast-web-api -g
-
-You might run into [issues](https://github.com/vervallsweg/cast-web-api/issues/79) with the optional Google-Assistant integration.
-
-## First steps
-    $ cast-web-api start
-
-The server runs on your network IP:3000 by default. On error it defaults to 127.0.0.1. Adjustable via:
-
-	$ cast-web-api start -H 192.168.0.11 -p 8080
+You probably don't want to install the api directly. For a GUI install [cast-web-api-desktop](https://github.com/vervallsweg/cast-web-api-desktop), for headless server installation use [cast-web-api-cli](https://github.com/vervallsweg/cast-web-api-cli).
 
 ## Usage
-
-    $ cast-web-api -h
-    
-       USAGE
-    
-         cast-web-api <command> [options]
-    
-       COMMANDS
-    
-         start               Start cast-web-api as daemon           
-         stop                Stop the cast-web-api daemon           
-         status              Check status of the cast-web-api daemon
-         startup             Start the cast-web-api daemon on system startup      
-         unstartup           Remove the cast-web-api daemon start on system startup
-         fix-perm            Changes permissions on /config to current user
-         help <command>      Display help for a specific command    
-    
-       GLOBAL OPTIONS
-    
-         -h, --help         Display help                                      
-         -V, --version      Display version
 
 ### Basics
 cast-web-api tries to behave like the Google Home app. All available devices will be connected to, if a device goes down, it'll be removed. If it randomly disconnects, it'll try to reconnect.
@@ -48,17 +18,7 @@ The autoConnect behavior can be turned of with the config parameter `autoConnect
 
 ### Parameters
 
-Every changed parameter will be saved in `/config/config.json`.
-
-### Run on system startup
-
-Enable start cast-web-api on startup.
-
-    $ cast-web-api startup
-    
-Disable start cast-web-api on startup.
-
-    $ cast-web-api unstartup
+Every changed parameter will be saved in `/config/config.json`. This location will be changed in the next release.
 
 ### Documentation
 
