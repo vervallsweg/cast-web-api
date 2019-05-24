@@ -1,11 +1,11 @@
 {
 	"name": "cast-web-api",
-	"version": "1.2.0-rc6",
+	"version": "1.2.0-rc7",
 	"author": "Tobias Haerke",
 	"engines": {
 		"node": ">= 7.0.0"
 	},
-	"main": "castWebApi.js",
+	"main": "api.js",
 	"scripts": {
 		"start": "node ./castWebApi.js"
 	},
