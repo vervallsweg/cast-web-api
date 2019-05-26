@@ -28,20 +28,13 @@ Parse the [swagger.json](https://raw.githubusercontent.com/vervallsweg/cast-web-
 #### Local
 Install the devDependencies for instance `git clone` this repo then `npm install` into the repo. Docs now available at `/swagger`.
 
-
-## Debugging
+## Debugging //TODO: remove/edit
 Every log output follows this format: {time} {device id} {function name}: {message}. For easy differentiation between those components, device id is inverted in color and function name underlined. Info messages appear in your standard terminal color. Error messages in red, warning messages in red and server related messages in blue.
 ```
 2018-03-31T18:27:09.508Z a90824f40764eb5df1fccc4f5cb95dd3 reconnectionManagement(): reconnecting
 ```
 
-cast-web-js uses npm's debug package. Debugging can be enabled with the following command:
-
-    $ DEBUG=cast-web-api node (yourdirectory)/castWebApi.js
-
-If you need further information you can enable debugging for the underlying castv2 module. You can either set the scope to castv2 or to everything:
-
-	$ DEBUG=* node (yourdirectory)/castWebApi.js
+By default only certain messages are logged, to enable all log-levels see the swagger documentation on /config.
 
 ## Further information
 [thibauts](https://github.com/thibauts "thibauts profile") wrote a great [protocol description](https://github.com/thibauts/node-castv2#protocol-description "protocol description"). I can only highly recommend reading it.
