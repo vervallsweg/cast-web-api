@@ -2,8 +2,9 @@ const Express = require('express');
 const bodyParser = require('body-parser');
 const configuration = require("./lib/config/config.js");
 
-console.log('argv:');
-console.log(process.argv);
+// console.log('argv:');
+// console.log(process.argv);
+
 configuration.init(process.argv.slice(2));
 
 const assistant = require("./lib/assistant");
