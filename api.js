@@ -2,6 +2,9 @@ const Express = require('express');
 const bodyParser = require('body-parser');
 const configuration = require("./lib/config/config.js");
 
+// console.log('argv:');
+// console.log(process.argv);
+
 configuration.init(process.argv.slice(2));
 
 const assistant = require("./lib/assistant");
@@ -36,5 +39,15 @@ function createWebServer() {
 
 	webserver.listen(configuration.port, () => {
 		console.log(`cast-web-api running at http://${configuration.hostname}:${configuration.port}`);
+	});
+
+	process.on('message', packet => {
+		console.log(configuration.hostname);
+		process.send({
+			type : 'process:msg',
+			data : {
+				address : `${configuration.hostname}:${configuration.port}`
+			}
+		});
 	});
 }

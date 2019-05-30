@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-const castWebApi = require('../castWebApi');
+const castWebApi = require('../api');

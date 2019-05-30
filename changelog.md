@@ -1,4 +1,13 @@
 # Changelog
+## v1.2.0
+- Attention: command line usage and options changed, see README.md
+- Added: new command line interface #101
+- Added: built in process management (daemon) #63
+- Added: ES6 class definitions #74
+- Added: central configuration file /config/config.json #98
+- Added: callbacks saved in fs /config/callbacks.json #99
+- Added: callbacks with heartbeat support #100
+
 ## v1.1.0
 - Attention: Requires node 7.0.0 or higher
 - Fixed: MDNS library, changed to own mdns-cast-browser #73
