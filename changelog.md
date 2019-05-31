@@ -1,4 +1,8 @@
 # Changelog
+
+## v1.2.1
+- Fixed: assistant integration #114 
+
 ## v1.2.0
 - Attention: command line usage and options changed, see README.md
 - Added: new command line interface #101
