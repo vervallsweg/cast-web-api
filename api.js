@@ -1,11 +1,15 @@
 const Express = require('express');
 const bodyParser = require('body-parser');
+const Path = require('path');
+const Fs = require('./lib/config/fs');
+
+
+const configDir = getConfigDir();
+Fs.init(configDir);
+
 const configuration = require("./lib/config/config.js");
+configuration.init();
 
-// console.log('argv:');
-// console.log(process.argv);
-
-configuration.init(process.argv.slice(2));
 
 const assistant = require("./lib/assistant");
 const callback = require("./lib/callback");
@@ -50,4 +54,24 @@ function createWebServer() {
 			}
 		});
 	});
+}
+
+function getConfigDir() {
+	let configDir;
+
+	if (process.argv[2] && process.argv[1]) {
+		try {
+			console.log(process.argv);
+			configDir = Path.resolve(process.argv[2]);
+		} catch (e) {
+			console.error('Cannot parse config dir:', e);
+		}
+	}
+
+	if (!configDir) {
+		console.error('No valid config dir specified.');
+		process.exit(1);
+	}
+
+	return configDir;
 }

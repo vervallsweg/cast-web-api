@@ -18,7 +18,13 @@ The autoConnect behavior can be turned of with the config parameter `autoConnect
 
 ### Parameters
 
-Every changed parameter will be saved in `/config/config.json`. This location will be changed in the next release.
+Only one parameter is accepted and required, which is the path to your config directory.
+The config directory contains the `/config.json`, which is a json file equivalent to the object returned at /config.
+See the [api documentation](https://github.com/vervallsweg/cast-web-api#documentation) for more info.
+
+The hostname and port options can also be set here.
+
+Callbacks and the Google Assistant configuration are stored in different files in this directory.
 
 ### Documentation
 
@@ -28,17 +34,22 @@ Parse the [swagger.json](https://raw.githubusercontent.com/vervallsweg/cast-web-
 #### Local
 Install the devDependencies for instance `git clone` this repo then `npm install` into the repo. Docs now available at `/swagger`.
 
-## Debugging //TODO: remove/edit
-Every log output follows this format: {time} {device id} {function name}: {message}. For easy differentiation between those components, device id is inverted in color and function name underlined. Info messages appear in your standard terminal color. Error messages in red, warning messages in red and server related messages in blue.
+## Debugging
+Every log output follows this format: {time} {device id} {function name}: {message}.
+For easy differentiation between those components, device id is inverted in color and function name underlined.
+Info messages appear in your standard terminal color.
+Error messages in red, warning messages in red and server related messages in blue.
+
 ```
 2018-03-31T18:27:09.508Z a90824f40764eb5df1fccc4f5cb95dd3 reconnectionManagement(): reconnecting
 ```
 
-By default only certain messages are logged, to enable all log-levels see the swagger documentation on /config.
+By default only certain messages are logged, to enable all log-levels see the
+[api documentation](https://github.com/vervallsweg/cast-web-api#documentation) on /config.
 
 ## Further information
 [thibauts](https://github.com/thibauts "thibauts profile") wrote a great [protocol description](https://github.com/thibauts/node-castv2#protocol-description "protocol description"). I can only highly recommend reading it.
 
-If you read the first sentences of this file it goes without saying that you **should not** run this API on the internet. Run it behind a firewall only in your local network!
+You **should not** run this API on the internet. Run it behind a firewall only in your local network!
 
 If you find a bug or typo, feel free to contact me, open an issue, fork it, open prs, you name it.
