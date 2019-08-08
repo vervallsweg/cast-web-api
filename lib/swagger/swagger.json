@@ -347,7 +347,7 @@
             "type": "string"
           },
           {
-            "name": "targetVolume",
+            "name": "seconds",
             "in": "path",
             "description": "Seconds you want to set the current media playback to.",
             "required": true,
