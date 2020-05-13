@@ -854,7 +854,7 @@
           "callback"
         ],
         "summary": "Create new callbacks",
-        "description": "Create new callbacks, identified by their url. If a callback with the same url already exists, it will be overwritten.",
+        "description": "Create new callbacks, identified by their id. If a callback with the same id already exists, it will be overwritten.",
         "parameters": [
           {
             "in": "body",
@@ -895,7 +895,7 @@
           "callback"
         ],
         "summary": "Update existing callbacks",
-        "description": "Update existing callbacks, identified by its url. Only the settings will be changed.",
+        "description": "Update existing callbacks, identified by its id. Settings and address will be changed.",
         "produces": [
           "application/json"
         ],
@@ -942,7 +942,7 @@
           "callback"
         ],
         "summary": "Delete existing callbacks",
-        "description": "Delete existing callbacks, identified by its url.",
+        "description": "Delete existing callbacks, identified by its id.",
         "produces": [
           "application/json"
         ],
@@ -982,17 +982,17 @@
         }
       }
     },
-    "/callback/{url}": {
+    "/callback/{id}": {
       "get": {
         "tags": [
           "callback"
         ],
-        "summary": "Get a callback object by url",
+        "summary": "Get a callback object by id",
         "parameters": [
           {
-            "name": "url",
+            "name": "id",
             "in": "path",
-            "description": "Callback url",
+            "description": "Callback id",
             "required": true,
             "type": "string"
           }
@@ -1155,6 +1155,10 @@
     "Callback": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id with which the callback is identified"
+        },
         "url": {
           "type": "string",
           "description": "HTTP url to which packages will be send"
