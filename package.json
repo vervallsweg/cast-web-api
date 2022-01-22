@@ -29,7 +29,7 @@
 		"jsonfile": "*",
 		"mdns-cast-browser": ">1.0.2",
 		"minimist": "*",
-		"node-fetch": "^2.2.0",
+		"node-fetch": "^3.1.1",
 		"os": "*",
 		"url": "*"
 	},
